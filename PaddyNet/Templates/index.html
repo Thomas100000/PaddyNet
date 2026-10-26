@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}PaddyNet — Digitizing Paddy Farming Communities{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-container">
+        <div class="hero-badge">
+            <span class="badge-dot"></span>
+            <span>Next-Gen Agricultural Network</span>
+        </div>
+        <h1 class="hero-title">Digitizing paddy farming communities — fields, accounts, and mill bids in one place.</h1>
+        <p class="hero-subtitle">
+            PaddyNet connects farmers, rice mill owners, and community administrators into a unified digital ecosystem. Streamline field logs, track financial accounts, and participate in transparent harvest bidding.
+        </p>
+        <div class="hero-actions">
+            <a href="{% url 'register' %}" class="btn-primary">
+                Get Started Today
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+            </a>
+            <a href="{% url 'login' %}" class="btn-secondary">
+                Sign In to Portal
+            </a>
+        </div>
+
+        <div class="hero-stats">
+            <div class="stat-item">
+                <span class="stat-number">100%</span>
+                <span class="stat-label">Transparent Bidding</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">Real-Time</span>
+                <span class="stat-label">Harvest Updates</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">Unified</span>
+                <span class="stat-label">Field &amp; Billing Logs</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="section-header">
+        <span class="section-tag">Tailored Platform Modules</span>
+        <h2 class="section-title">Built for every stakeholder in paddy farming</h2>
+    </div>
+
+    <div class="features-grid">
+        <!-- Feature Card 1: For Farmers -->
+        <div class="feature-card">
+            <div class="feature-icon-wrapper icon-farmer">
+                🌱
+            </div>
+            <h3 class="feature-title">For Farmers</h3>
+            <p class="feature-description">Track fields &amp; activities with real-time crop logs, irrigation schedules, and seasonal expenditure tracking.</p>
+            <ul class="feature-list">
+                <li>Track fields &amp; daily activities</li>
+                <li>Log fertilizer &amp; irrigation schedules</li>
+                <li>Monitor yield predictions</li>
+            </ul>
+        </div>
+
+        <!-- Feature Card 2: For Mill Owners -->
+        <div class="feature-card">
+            <div class="feature-icon-wrapper icon-mill">
+                🌾
+            </div>
+            <h3 class="feature-title">For Mill Owners</h3>
+            <p class="feature-description">View harvests, place bids directly on paddy lots, and secure quality crop supply through competitive auctions.</p>
+            <ul class="feature-list">
+                <li>View harvests &amp; crop batches</li>
+                <li>Place direct bids on paddy lots</li>
+                <li>Manage procurement contracts</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block title %}Farmer Dashboard — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-header">
+        <div class="dashboard-welcome">
+            <span class="role-badge badge-farmer">Farmer Portal</span>
+            <h1 class="dashboard-title">Welcome, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}</h1>
+            <p class="dashboard-subtitle">Manage your field parcels, log farming activities, monitor seasonal harvest yields, and bid schedules.</p>
+        </div>
+        <div class="field-header-actions">
+            <a href="{% url 'field_list' %}" class="btn-secondary">
+                <span>🌾 My Fields ({{ total_fields }})</span>
+            </a>
+            <a href="{% url 'farmer_bids' %}" class="btn-secondary" style="border-color: var(--color-primary-light); background: #f0fdf4;">
+                <span>💰 Mill Bids {% if total_bids_received > 0 %}<span class="status-badge status-verified" style="font-size: 0.7rem; padding: 0.15rem 0.45rem;">{{ total_bids_received }} Active</span>{% endif %}</span>
+            </a>
+            <a href="{% url 'farmer_bills' %}" class="btn-secondary">
+                <span>💳 My Bills {% if pending_bills_count > 0 %}<span class="status-badge status-pending" style="font-size: 0.7rem; padding: 0.15rem 0.45rem;">{{ pending_bills_count }} Due</span>{% endif %}</span>
+            </a>
+            <a href="{% url 'farmer_notifications' %}" class="btn-secondary">
+                <span>📢 Notices</span>
+            </a>
+            <a href="{% url 'field_statistics' %}" class="btn-secondary">
+                <span>📊 Stats</span>
+            </a>
+            <a href="{% url 'field_create' %}" class="btn-primary">
+                <span>➕ Add Field</span>
+            </a>
+            <a href="{% url 'farmer_harvest_yield_pdf' %}"
+               class="btn-primary"
+               style="background: linear-gradient(135deg, #1b4332, #2d6a4f); display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1.1rem; font-size:0.9rem; text-decoration:none; border-radius:8px; color:#fff; font-weight:700; box-shadow:0 2px 8px rgba(27,67,50,0.18);"
+               title="Download Complete Harvest Yield History PDF">
+                <span>📥</span> Yield Report PDF
+            </a>
+            <a href="{% url 'logout' %}" class="btn-secondary">Logout</a>
+        </div>
+    </div>
+
+    <!-- Quick Stat Metrics Row -->
+    <div class="field-stat-row">
+        <div class="stat-metric-card">
+            <div class="metric-icon">🌾</div>
+            <div class="metric-details">
+                <span class="metric-label">Registered Fields</span>
+                <span class="metric-val">{{ total_fields }}</span>
+            </div>
+        </div>
+
+        <div class="stat-metric-card">
+            <div class="metric-icon">📐</div>
+            <div class="metric-details">
+                <span class="metric-label">Total Land Extent</span>
+                <span class="metric-val">{{ total_acres }} <span style="font-size: 0.95rem; font-weight: 600; color: var(--color-text-muted);">Acres</span></span>
+            </div>
+        </div>
+
+        <div class="stat-metric-card">
+            <div class="metric-icon">🚜</div>
+            <div class="metric-details">
+                <span class="metric-label">Harvested Output</span>
+                <span class="metric-val">{{ total_harvest|floatformat:0 }} <span style="font-size: 0.95rem; font-weight: 600; color: var(--color-text-muted);">kg</span></span>
+            </div>
+        </div>
+
+        <div class="stat-metric-card">
+            <div class="metric-icon" style="background: #ecfdf5; color: #047857;">💰</div>
+            <div class="metric-details">
+                <span class="metric-label">Mill Offers</span>
+                <span class="metric-val" style="color: #047857;">
+                    {{ total_bids_received }} <span style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted);">Bid{{ total_bids_received|pluralize }}</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="stat-metric-card">
+            <div class="metric-icon" style="background: #fff3bf; color: #b45309;">💳</div>
+            <div class="metric-details">
+                <span class="metric-label">Pending Dues</span>
+                <span class="metric-val" style="color: #b45309;">
+                    {{ pending_bills_count }} <span style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted);">Bill{{ pending_bills_count|pluralize }}</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Profile Card -->
+        <div class="dashboard-card">
+            <div class="card-icon">🌱</div>
+            <h3>Farmer Profile</h3>
+            {% if profile %}
+                <p><strong>Farmer ID:</strong> <span style="font-family: monospace; font-weight: 700; color: var(--color-primary-dark);">{{ profile.farmer_id|default:"Pending Verification" }}</span></p>
+                <p><strong>Full Name:</strong> {{ profile.full_name|default:user.first_name|default:user.username }}</p>
+                <p><strong>Village:</strong> {{ profile.village }}</p>
+                <p><strong>Farming Group:</strong> {{ profile.farming_group }}</p>
+                <p><strong>Declared Acres Owned:</strong> {{ profile.acres_owned }} Acres</p>
+                <p><strong>Phone:</strong> {{ profile.phone_number }}</p>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Verification:</strong> 
+                    {% if profile.is_verified %}
+                        <span class="status-badge status-verified">Verified</span>
+                    {% else %}
+                        <span class="status-badge status-pending">Pending Admin Verification</span>
+                    {% endif %}
+                </p>
+            {% else %}
+                <p>No profile details found.</p>
+            {% endif %}
+        </div>
+
+        <!-- Field & Crop Status Card -->
+        <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div class="card-icon" style="margin: 0;">🌾</div>
+                    <h3 style="margin: 0;">Field &amp; Crop Status</h3>
+                </div>
+                <a href="{% url 'field_list' %}" style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary); text-decoration: underline;">
+                    View All &rarr;
+                </a>
+            </div>
+
+            {% if fields %}
+                <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.75rem;">
+                    {% for f in fields %}
+                        <div style="background: #f8faf7; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color: var(--color-primary-dark); font-size: 0.95rem;">{{ f.field_name }}</strong>
+                                {% if f.field_identifier %}
+                                    <span style="font-family: monospace; font-size: 0.8rem; color: var(--color-text-muted);">({{ f.field_identifier }})</span>
+                                {% endif %}
+                                <div style="font-size: 0.825rem; color: var(--color-text-muted); margin-top: 0.15rem;">
+                                    📍 {{ f.location }} &bull; 🌾 {{ f.extent_area }} Acres &bull; {{ f.activity_count }} operations
+                                </div>
+                            </div>
+                            <a href="{% url 'field_detail' f.id %}" class="btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem;">
+                                Timeline &rarr;
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted" style="margin-top: 0.5rem;">
+                    You haven't added any paddy parcels yet. Register your fields to track agricultural operations.
+                </p>
+                <a href="{% url 'field_create' %}" class="btn-primary" style="align-self: flex-start; margin-top: 0.5rem;">
+                    <span>➕ Register First Field</span>
+                </a>
+            {% endif %}
+
+            <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.875rem; color: var(--color-text-muted);">Want to check seasonal harvest trends?</span>
+                <a href="{% url 'field_statistics' %}" style="font-size: 0.875rem; font-weight: 700; color: var(--color-primary);">
+                    📊 Yield Analytics &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Community Notices Widget -->
+    {% if recent_notifications %}
+        <div class="dashboard-card" style="margin-top: 2rem; margin-bottom: 0; border-left: 4px solid var(--color-primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.2rem;">
+                    <span>📢</span> Recent Community Notices & Advisories
+                </h3>
+                <a href="{% url 'farmer_notifications' %}" style="font-size: 0.875rem; font-weight: 700; color: var(--color-primary); text-decoration: underline;">
+                    View All Notices &rarr;
+                </a>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                {% for n in recent_notifications %}
+                    <div style="padding: 1rem; background: #fbfcfb; border: 1px solid var(--color-border); border-radius: var(--radius-sm);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.35rem;">
+                            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--color-primary-dark);">{{ n.title }}</h4>
+                            <span style="font-size: 0.75rem; color: var(--color-text-muted); white-space: nowrap;">{{ n.created_at|timesince }} ago</span>
+                        </div>
+                        <p style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--color-text-main); line-height: 1.45;">
+                            {{ n.message|truncatewords:20 }}
+                        </p>
+                        <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                            By <strong>{{ n.posted_by.username }}</strong> &bull; {{ n.created_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Recent Activities Feed (if any) -->
+    {% if recent_activities %}
+        <div style="margin-top: 2.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--color-primary-dark);">
+                    ⏱️ Recent Farming Activities
+                </h3>
+                <span style="font-size: 0.85rem; color: var(--color-text-muted);">Latest operations across all your fields</span>
+            </div>
+
+            <div class="admin-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Operation</th>
+                            <th>Date</th>
+                            <th>Season</th>
+                            <th>Yield</th>
+                            <th>Notes</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for act in recent_activities %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'field_detail' act.field.id %}" style="font-weight: 700; color: var(--color-primary-dark); text-decoration: underline;">
+                                        🌾 {{ act.field.field_name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if act.activity_type == 'SOWING' %}
+                                        <span class="activity-badge badge-sowing">🌱 Sowing</span>
+                                    {% elif act.activity_type == 'TRANSPLANTING' %}
+                                        <span class="activity-badge badge-transplanting">🌾 Transplanting</span>
+                                    {% elif act.activity_type == 'FERTILIZER' %}
+                                        <span class="activity-badge badge-fertilizer">🧪 Fertilizer</span>
+                                    {% elif act.activity_type == 'PESTICIDE' %}
+                                        <span class="activity-badge badge-pesticide">🛡️ Pesticide</span>
+                                    {% elif act.activity_type == 'IRRIGATION' %}
+                                        <span class="activity-badge badge-irrigation">💧 Irrigation</span>
+                                    {% elif act.activity_type == 'HARVEST' %}
+                                        <span class="activity-badge badge-harvest">🚜 Harvest</span>
+                                    {% else %}
+                                        <span class="activity-badge">{{ act.get_activity_type_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ act.activity_date|date:"M d, Y" }}</td>
+                                <td><span class="timeline-season">{{ act.season_year }}</span></td>
+                                <td>
+                                    {% if act.yield_kg %}
+                                        <strong>{{ act.yield_kg|floatformat:0 }} kg</strong>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    {{ act.notes|default:"—" }}
+                                </td>
+                                <td>
+                                    <a href="{% url 'field_detail' act.field.id %}" class="btn-card-icon" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">
+                                        View Timeline
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

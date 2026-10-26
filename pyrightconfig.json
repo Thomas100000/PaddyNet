@@ -1,0 +1,15 @@
+{
+  "venvPath": ".",
+  "venv": "env",
+  "extraPaths": [
+    "./PaddyNet",
+    "d:/MiniProject/PaddyNet"
+  ],
+  "exclude": [
+    "**/__pyrefly_virtual__/**"
+  ],
+  "ignore": [
+    "**/__pyrefly_virtual__/**"
+  ],
+  "reportMissingTypeStubs": false
+}

@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}My Paddy Fields — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-header">
+        <div>
+            <span class="role-badge badge-farmer">Farmer Portal</span>
+            <h1 class="dashboard-title">My Paddy Fields</h1>
+            <p class="dashboard-subtitle">Manage your registered agricultural land, track activities, and view harvest histories.</p>
+        </div>
+        <div class="field-header-actions">
+            <a href="{% url 'farmer_dashboard' %}" class="btn-secondary">
+                <span>&larr; Dashboard</span>
+            </a>
+            <a href="{% url 'field_create' %}" class="btn-primary">
+                <span>➕ Register New Field</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Metrics Row -->
+    <div class="field-stat-row">
+        <div class="stat-metric-card">
+            <div class="metric-icon">🌾</div>
+            <div class="metric-details">
+                <span class="metric-label">Total Fields</span>
+                <span class="metric-val">{{ total_fields }}</span>
+            </div>
+        </div>
+        <div class="stat-metric-card">
+            <div class="metric-icon">📐</div>
+            <div class="metric-details">
+                <span class="metric-label">Total Extent</span>
+                <span class="metric-val">{{ total_acres }} <span style="font-size: 0.95rem; font-weight: 600; color: var(--color-text-muted);">Acres</span></span>
+            </div>
+        </div>
+        <div class="stat-metric-card">
+            <div class="metric-icon">📈</div>
+            <div class="metric-details">
+                <span class="metric-label">Analytics</span>
+                <a href="{% url 'field_statistics' %}" style="font-size: 0.95rem; font-weight: 700; color: var(--color-primary); text-decoration: underline;">View Yield Stats &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    {% if fields %}
+        <div class="fields-grid">
+            {% for field in fields %}
+                <div class="field-card-item">
+                    <div>
+                        <div class="field-card-top">
+                            <h2 class="field-title">{{ field.field_name }}</h2>
+                            {% if field.field_identifier %}
+                                <span class="field-code-badge">{{ field.field_identifier }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="field-location">
+                            <span>📍</span>
+                            <span>{{ field.location }}</span>
+                        </div>
+                        <div class="field-meta-pills">
+                            <span class="meta-pill meta-pill-accent">
+                                <span>🌾</span>
+                                <strong>{{ field.extent_area }}</strong> Acres
+                            </span>
+                            <span class="meta-pill">
+                                <span>📋</span>
+                                <strong>{{ field.activity_count }}</strong> Activities
+                            </span>
+                            {% if field.harvest_yield %}
+                                <span class="meta-pill" style="background-color: #fefae0; border-color: #ffe066; color: #856404;">
+                                    <span>🚜</span>
+                                    <strong>{{ field.harvest_yield|floatformat:0 }}</strong> kg Harvested
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="field-card-actions">
+                        <a href="{% url 'field_detail' field.id %}" class="btn-primary btn-card-primary">
+                            <span>Timeline &amp; Logs &rarr;</span>
+                        </a>
+                        <a href="{% url 'field_statistics_detail' field.id %}" class="btn-card-icon" title="Yield Statistics">
+                            <span>📊</span>
+                        </a>
+                        <a href="{% url 'field_edit' field.id %}" class="btn-card-icon" title="Edit Field">
+                            <span>✏️</span>
+                        </a>
+                        <a href="{% url 'field_delete' field.id %}" class="btn-card-icon btn-card-icon-delete" title="Delete Field">
+                            <span>🗑️</span>
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state-card">
+            <div class="empty-state-icon">🌾</div>
+            <h3 class="empty-state-title">No Paddy Fields Registered Yet</h3>
+            <p class="empty-state-desc">You haven't added any agricultural fields to your profile. Register your fields to track sowing dates, fertilizer/pesticide sprays, irrigation cycles, and harvest yields.</p>
+            <a href="{% url 'field_create' %}" class="btn-primary" style="margin-top: 0.5rem;">
+                <span>➕ Add Your First Field</span>
+            </a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

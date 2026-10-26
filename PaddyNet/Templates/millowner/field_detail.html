@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ field.field_name }} — Harvest Produce Details & Place Bid — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-welcome">
+                <span class="role-badge badge-mill">Produce Lot &amp; Bidding Portal</span>
+                <h1 class="dashboard-title">🌾 {{ field.field_name }}</h1>
+                <p class="dashboard-subtitle">
+                    Harvest lot managed by <strong>{% if field.owner.farmer_profile.full_name %}{{ field.owner.farmer_profile.full_name }}{% else %}{{ field.owner.username }}{% endif %}</strong> in {{ field.location }}.
+                </p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'millowner_field_browse' %}" class="btn-secondary">
+                    <span>&larr; Back to Produce Browse</span>
+                </a>
+                <a href="{% url 'millowner_bid_history' %}" class="btn-secondary">
+                    <span>📜 My Bids</span>
+                </a>
+                <a href="{% url 'millowner_field_harvest_pdf' field.id %}"
+                   class="btn-primary"
+                   style="background: linear-gradient(135deg, #1b4332, #2d6a4f); display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1.1rem; font-size:0.9rem; text-decoration:none; border-radius:8px; color:#fff; font-weight:700; box-shadow:0 2px 8px rgba(27,67,50,0.18);"
+                   title="Download Harvest Yield PDF Report">
+                    <span>📥</span> Download Yield Report
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Summary Metrics Row -->
+        <div class="field-stat-row" style="margin-bottom: 2rem;">
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #e8f5e9; color: #1b4332;">📐</div>
+                <div class="metric-details">
+                    <span class="metric-label">Land Parcel Extent</span>
+                    <span class="metric-val">{{ field.extent_area }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">Acres</span></span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #f0fdf4; color: #15803d;">🌾</div>
+                <div class="metric-details">
+                    <span class="metric-label">Latest Harvest Yield</span>
+                    <span class="metric-val">
+                        {% if harvest_activities.first and harvest_activities.first.yield_kg %}
+                            {{ harvest_activities.first.yield_kg|floatformat:0 }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">kg</span>
+                        {% elif harvest_activities.first %}
+                            <span style="font-size: 0.95rem; color: var(--color-text-muted); font-weight: 600;">Harvest logged (qty pending)</span>
+                        {% else %}
+                            <span style="font-size: 1rem; color: var(--color-text-muted);">In Progress</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #ecfdf5; color: #047857;">💰</div>
+                <div class="metric-details">
+                    <span class="metric-label">Current Top Offer</span>
+                    <span class="metric-val">
+                        {% if highest_bid %}
+                            ₹{{ highest_bid|floatformat:2 }}
+                        {% else %}
+                            <span style="font-size: 1rem; color: var(--color-text-muted); font-weight: 600;">No bids yet</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fef3c7; color: #b45309;">📊</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Bids on Lot</span>
+                    <span class="metric-val">{{ all_bids_count }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">Bid{{ all_bids_count|pluralize }}</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2-Column Layout: Left Details & Timeline, Right Place Bid Form -->
+        <div style="display: grid; grid-template-columns: 1fr 380px; gap: 2rem; align-items: start;" class="field-detail-layout">
+            <!-- Left Column: Specs, Harvest History, Agricultural Timeline -->
+            <div>
+                <!-- Farmer & Field Specifications Card -->
+                <div class="dashboard-card" style="margin-bottom: 1.5rem;">
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                        <span>📋</span> Field &amp; Producer Profile
+                    </h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.925rem;">
+                        <div style="background: #f8faf7; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                            <span class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 0.2rem;">PRODUCER</span>
+                            <strong style="font-size: 1.05rem; color: var(--color-primary-dark);">
+                                {% if field.owner.farmer_profile.full_name %}
+                                    {{ field.owner.farmer_profile.full_name }}
+                                {% else %}
+                                    {{ field.owner.username }}
+                                {% endif %}
+                            </strong>
+                            {% if field.owner.farmer_profile.farmer_id %}
+                                <div style="font-family: monospace; font-size: 0.8rem; color: var(--color-primary); font-weight: 700; margin-top: 0.2rem;">
+                                    Farmer ID: {{ field.owner.farmer_profile.farmer_id }}
+                                </div>
+                            {% endif %}
+                            <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.35rem;">
+                                Group: {{ field.owner.farmer_profile.farming_group|default:"A BLOCK" }}
+                            </div>
+                        </div>
+
+                        <div style="background: #f8faf7; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                            <span class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 0.2rem;">PARCEL LOCATION</span>
+                            <strong style="font-size: 1.05rem; color: var(--color-text-main);">📍 {{ field.location }}</strong>
+                            {% if field.field_identifier %}
+                                <div style="font-family: monospace; font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.2rem;">
+                                    Survey Code: {{ field.field_identifier }}
+                                </div>
+                            {% endif %}
+                            <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.35rem;">
+                                Extent: {{ field.extent_area }} Registered Acres
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Harvest Details Card -->
+                <div class="dashboard-card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--color-primary);">
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                        <span>🚜</span> Harvest Yield History &amp; Quality Notes
+                    </h3>
+
+                    {% if harvest_activities %}
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            {% for harvest in harvest_activities %}
+                                <div style="background: #fbfcfb; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 1.1rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem;">
+                                        <div>
+                                            <span class="activity-badge badge-harvest" style="font-size: 0.8rem; padding: 0.2rem 0.6rem;">
+                                                🚜 Harvested on {{ harvest.activity_date|date:"F d, Y" }}
+                                            </span>
+                                            <span style="margin-left: 0.5rem; font-weight: 700; color: var(--color-primary-dark); font-size: 0.9rem;">
+                                                Season: {{ harvest.season_year }}
+                                            </span>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            {% if harvest.yield_kg %}
+                                                <strong style="font-size: 1.3rem; color: #15803d; font-weight: 800;">
+                                                    {{ harvest.yield_kg|floatformat:0 }} kg
+                                                </strong>
+                                                <span style="display: block; font-size: 0.75rem; color: var(--color-text-muted);">
+                                                    ({% widthratio harvest.yield_kg field.extent_area 1 %} kg/acre approx)
+                                                </span>
+                                            {% else %}
+                                                <span style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic;">
+                                                    Yield quantity pending
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    {% if harvest.notes %}
+                                        <div style="background: #ffffff; border: 1px solid #e2ece9; border-radius: 6px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.875rem;">
+                                            <span style="font-weight: 700; color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; display: block; margin-bottom: 0.2rem;">FARMER OBSERVATIONS &amp; CONDITIONS:</span>
+                                            <p style="margin: 0; color: var(--color-text-main); line-height: 1.5;">{{ harvest.notes }}</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No harvest activity recorded yet for this field parcel.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Complete Farming Timeline (Transparency) -->
+                {% if other_activities %}
+                    <div class="dashboard-card" style="margin-bottom: 1.5rem;">
+                        <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                            <span>🌱</span> Agronomic Lifecycle Timeline
+                        </h3>
+                        <div class="admin-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Operation</th>
+                                        <th>Date</th>
+                                        <th>Season</th>
+                                        <th>Notes / Inputs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for act in other_activities %}
+                                        <tr>
+                                            <td>
+                                                {% if act.activity_type == 'SOWING' %}
+                                                    <span class="activity-badge badge-sowing">🌱 Sowing</span>
+                                                {% elif act.activity_type == 'TRANSPLANTING' %}
+                                                    <span class="activity-badge badge-transplanting">🌾 Transplanting</span>
+                                                {% elif act.activity_type == 'FERTILIZER' %}
+                                                    <span class="activity-badge badge-fertilizer">🧪 Fertilizer</span>
+                                                {% elif act.activity_type == 'PESTICIDE' %}
+                                                    <span class="activity-badge badge-pesticide">🛡️ Pesticide</span>
+                                                {% elif act.activity_type == 'IRRIGATION' %}
+                                                    <span class="activity-badge badge-irrigation">💧 Irrigation</span>
+                                                {% else %}
+                                                    <span class="activity-badge">{{ act.get_activity_type_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ act.activity_date|date:"M d, Y" }}</td>
+                                            <td>{{ act.season_year }}</td>
+                                            <td style="max-width: 280px; font-size: 0.85rem;">{{ act.notes|default:"—" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Your Previous Bids on this Field -->
+                {% if my_bids %}
+                    <div class="dashboard-card">
+                        <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <span>📑</span> Your Bidding History for this Parcel
+                        </h3>
+                        <div class="admin-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Offer Amount</th>
+                                        <th>Date Submitted</th>
+                                        <th>Terms &amp; Notes</th>
+                                        <th>Farmer Status &amp; Response</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for b in my_bids %}
+                                        <tr>
+                                            <td>
+                                                <strong style="color: #047857; font-size: 1rem;">₹{{ b.amount }}</strong>
+                                                {% if b.per_kg_rate %}
+                                                    <div style="font-size: 0.775rem; color: var(--color-text-muted); font-weight: 600;">
+                                                        ₹{{ b.per_kg_rate }}/kg
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td><span style="font-size: 0.85rem; color: var(--color-text-muted);">{{ b.date|date:"M d, Y, g:i a" }}</span></td>
+                                            <td style="font-size: 0.85rem;">{{ b.notes|default:"—" }}</td>
+                                            <td style="min-width: 170px;">
+                                                {% if b.status == 'ACCEPTED' %}
+                                                    <span class="status-badge" style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.75rem; font-weight: 700;">
+                                                        ✓ Accepted
+                                                    </span>
+                                                {% elif b.status == 'REJECTED' %}
+                                                    <span class="status-badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-size: 0.75rem; font-weight: 700;">
+                                                        ✕ Declined
+                                                    </span>
+                                                {% elif b.status == 'BARGAINING' %}
+                                                    <span class="status-badge" style="background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; font-size: 0.75rem; font-weight: 700;">
+                                                        💬 Counter-Offer
+                                                    </span>
+                                                    <div style="font-size: 0.75rem; color: #1e40af; font-weight: 700; margin-top: 0.25rem;">
+                                                        {% if b.counter_amount %}₹{{ b.counter_amount }}{% endif %}
+                                                        {% if b.counter_per_kg_rate %}(₹{{ b.counter_per_kg_rate }}/kg){% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="status-badge status-pending" style="font-size: 0.75rem; font-weight: 700;">
+                                                        ⏳ Pending Review
+                                                    </span>
+                                                {% endif %}
+                                                {% if b.farmer_note %}
+                                                    <div style="font-size: 0.75rem; color: #475569; font-style: italic; margin-top: 0.2rem;">
+                                                        “{{ b.farmer_note }}”
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Right Column: Place Bid Card Form -->
+            <div style="position: sticky; top: 1.5rem;">
+                <div class="dashboard-card" style="border-top: 4px solid #059669; box-shadow: var(--shadow-md);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.4rem;">💰</span>
+                        <h3 style="margin: 0;">Submit Purchase Bid</h3>
+                    </div>
+                    <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1.25rem;">
+                        Place your direct purchase offer for this paddy lot. The farmer will receive your offer instantly.
+                    </p>
+
+                    <form method="post" action="{% url 'millowner_field_detail' field.id %}">
+                        {% csrf_token %}
+
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label class="form-label" for="{{ form.amount.id_for_label }}" style="font-weight: 700; color: var(--color-primary-dark);">
+                                {% if harvest_kg %}
+                                    Offer Amount/kg (₹) <span style="color: #dc2626;">*</span>
+                                {% else %}
+                                    Offer Amount (₹) <span style="color: #dc2626;">*</span>
+                                {% endif %}
+                            </label>
+                            {{ form.amount }}
+                            {% if form.amount.errors %}
+                                <div class="form-error" style="color: #dc2626; font-size: 0.825rem; margin-top: 0.35rem;">
+                                    {{ form.amount.errors.0 }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if harvest_kg %}
+                                <div id="bid-calc-container" style="margin-top: 0.6rem; padding: 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); font-size: 0.85rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--color-primary-dark);">
+                                        <span>🌾 Harvested Quantity:</span>
+                                        <strong>{{ harvest_kg|floatformat:0 }} kg</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dashed #86efac; font-size: 0.95rem; color: #15803d;">
+                                        <span>💰 Calculated Total Amount:</span>
+                                        <strong id="live-bid-total" style="font-size: 1.05rem;">₹0.00</strong>
+                                    </div>
+                                    <small class="text-muted" style="display: block; margin-top: 0.35rem; font-size: 0.75rem; color: #166534;">
+                                        Total automatically calculated: Rate/kg × {{ harvest_kg|floatformat:0 }} kg
+                                    </small>
+                                </div>
+                            {% else %}
+                                <small class="text-muted" style="font-size: 0.775rem; display: block; margin-top: 0.25rem;">
+                                    Harvest yield not specified. Enter total parcel purchase offer in Indian Rupees (₹).
+                                </small>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label class="form-label" for="{{ form.notes.id_for_label }}" style="font-weight: 700; color: var(--color-primary-dark);">
+                                Offer Terms / Logistics Notes
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="form-error" style="color: #dc2626; font-size: 0.825rem; margin-top: 0.35rem;">
+                                    {{ form.notes.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted" style="font-size: 0.775rem; display: block; margin-top: 0.25rem;">
+                                E.g. Transportation included, farm-gate collection, settlement terms.
+                            </small>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem 1.25rem; font-size: 1rem;">
+                            <span>🌾 Submit Purchase Offer</span>
+                        </button>
+                    </form>
+
+                    {% if harvest_kg %}
+                    <script>
+                        (function() {
+                            const amountInput = document.getElementById("{{ form.amount.id_for_label }}");
+                            const totalDisplay = document.getElementById("live-bid-total");
+                            const harvestKg = parseFloat("{{ harvest_kg|default:'0' }}") || 0;
+
+                            function updateLiveTotal() {
+                                if (!amountInput || !totalDisplay || !harvestKg) return;
+                                const rate = parseFloat(amountInput.value);
+                                if (!isNaN(rate) && rate > 0) {
+                                    const total = rate * harvestKg;
+                                    totalDisplay.textContent = '₹' + total.toLocaleString('en-IN', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                } else {
+                                    totalDisplay.textContent = '₹0.00';
+                                }
+                            }
+
+                            if (amountInput) {
+                                amountInput.addEventListener('input', updateLiveTotal);
+                                updateLiveTotal();
+                            }
+                        })();
+                    </script>
+                    {% endif %}
+
+                    <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--color-border); font-size: 0.8rem; color: var(--color-text-muted);">
+                        <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.35rem;">
+                            <span>🔒</span> <strong>Fair Agricultural Trading:</strong>
+                        </div>
+                        <p style="margin: 0; line-height: 1.4;">
+                            Bids submitted are visible to the field owner. You may update your offer anytime by submitting a new bid.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

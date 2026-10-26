@@ -1,0 +1,1039 @@
+{% extends 'base.html' %}
+
+{% block title %}My Bills & Dues — PaddyNet Farmer Portal{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <span class="role-badge badge-farmer">Farmer Invoicing</span>
+                <h1 class="dashboard-title">My Invoices & Dues</h1>
+                <p class="dashboard-subtitle">Review administrative charges, water pump cesses, tractor dues, make simulated payments, view receipts, and raise disputes if needed.</p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'farmer_dashboard' %}" class="btn-secondary">
+                    <span>&larr; Dashboard</span>
+                </a>
+                <a href="{% url 'farmer_notifications' %}" class="btn-secondary">
+                    <span>📢 Community Notices</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Financial Summary Cards -->
+        <div class="field-stat-row" style="margin-bottom: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem;">
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #e0f2fe; color: #0284c7;">💳</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Invoiced</span>
+                    <span class="metric-val">₹{{ total_amount }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fff3bf; color: #b45309;">⏳</div>
+                <div class="metric-details">
+                    <span class="metric-label">Outstanding Dues</span>
+                    <span class="metric-val" style="color: #b45309;">₹{{ pending_amount }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #d8f3dc; color: #1b4332;">✅</div>
+                <div class="metric-details">
+                    <span class="metric-label">Settled Amount</span>
+                    <span class="metric-val" style="color: var(--color-primary);">₹{{ paid_amount }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fee2e2; color: #b91c1c;">⚠️</div>
+                <div class="metric-details">
+                    <span class="metric-label">Disputed Amount</span>
+                    <span class="metric-val" style="color: #b91c1c;">₹{{ disputed_amount }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar & Table Card -->
+        <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                        <span>📑</span> Statement of Accounts
+                    </h3>
+                    <p class="text-muted" style="margin: 0; font-size: 0.875rem;">
+                        All bills issued to account <strong>{{ user.username }}</strong>
+                    </p>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div style="display: flex; gap: 0.35rem; background: #f1f5f2; padding: 0.3rem; border-radius: var(--radius-sm); flex-wrap: wrap;">
+                    <a 
+                        href="{% url 'farmer_bills' %}" 
+                        class="filter-pill {% if not status_filter %}filter-active-all{% endif %}"
+                    >
+                        All ({{ total_count }})
+                    </a>
+                    <a 
+                        href="{% url 'farmer_bills' %}?status=PENDING" 
+                        class="filter-pill {% if status_filter == 'PENDING' %}filter-active-pending{% endif %}"
+                    >
+                        Pending ({{ pending_count }})
+                    </a>
+                    <a 
+                        href="{% url 'farmer_bills' %}?status=PAID" 
+                        class="filter-pill {% if status_filter == 'PAID' %}filter-active-paid{% endif %}"
+                    >
+                        Paid ({{ paid_count }})
+                    </a>
+                    <a 
+                        href="{% url 'farmer_bills' %}?status=DISPUTED" 
+                        class="filter-pill {% if status_filter == 'DISPUTED' %}filter-active-disputed{% endif %}"
+                    >
+                        Disputed ({{ disputed_count }})
+                    </a>
+                </div>
+            </div>
+
+            {% if bills %}
+                <div class="admin-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date Issued</th>
+                                <th>Category / Description</th>
+                                <th>Bill Document</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bill in bills %}
+                                <tr>
+                                    <td>
+                                        <strong style="font-family: monospace; font-size: 0.95rem; color: var(--color-primary-dark);">
+                                            #{{ bill.id }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 0.875rem; color: var(--color-text-muted);">
+                                            {{ bill.date_issued|date:"M d, Y" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--color-primary-dark);">
+                                            {{ bill.description|default:"Administrative assessment" }}
+                                        </div>
+                                        {% if bill.notes %}
+                                            <div style="font-size: 0.78rem; color: var(--color-text-muted);">
+                                                {{ bill.notes|truncatechars:45 }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if bill.bill_file %}
+                                            <a href="{{ bill.bill_file.url }}" target="_blank" rel="noopener noreferrer" class="btn-doc-pill" title="View attached bill copy">
+                                                {% if bill.is_pdf %}
+                                                    <span style="color: #dc2626;">📄</span> PDF Bill
+                                                {% else %}
+                                                    <span style="color: #2563eb;">🖼️</span> JPG Bill
+                                                {% endif %}
+                                            </a>
+                                        {% else %}
+                                            <span style="color: #9ca3af; font-size: 0.8rem; font-style: italic;">No copy attached</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong style="font-size: 1.05rem; color: var(--color-primary-dark);">
+                                            ₹{{ bill.amount }}
+                                        </strong>
+                                        {% if bill.status == 'PAID' and bill.transaction_id %}
+                                            <div style="font-size: 0.72rem; color: #166534; font-family: monospace;">
+                                                Ref: {{ bill.transaction_id|truncatechars:14 }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if bill.status == 'PAID' %}
+                                            <span class="status-badge status-verified">Paid</span>
+                                        {% elif bill.status == 'DISPUTED' %}
+                                            <span class="status-badge status-disputed" title="Dispute under review">⚠️ Disputed</span>
+                                        {% else %}
+                                            <span class="status-badge status-pending">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: right; white-space: nowrap;">
+                                        <!-- View Bill Details Button -->
+                                        <button 
+                                            type="button" 
+                                            class="btn-action-view" 
+                                            title="View complete bill and receipt"
+                                            data-bill-id="{{ bill.id }}"
+                                            data-category="{{ bill.description }}"
+                                            data-amount="{{ bill.amount }}"
+                                            data-date-issued="{{ bill.date_issued|date:'M d, Y' }}"
+                                            data-status="{{ bill.status }}"
+                                            data-notes="{{ bill.notes }}"
+                                            data-file-url="{% if bill.bill_file %}{{ bill.bill_file.url }}{% endif %}"
+                                            data-is-pdf="{{ bill.is_pdf|yesno:'true,false' }}"
+                                            data-file-name="{{ bill.file_name }}"
+                                            data-payment-method="{{ bill.payment_method }}"
+                                            data-transaction-id="{{ bill.transaction_id }}"
+                                            data-paid-at="{{ bill.paid_at|date:'M d, Y H:i' }}"
+                                            data-dispute-reason="{{ bill.dispute_reason }}"
+                                            data-disputed-at="{{ bill.disputed_at|date:'M d, Y H:i' }}"
+                                            onclick="handleViewBillClick(this)"
+                                        >
+                                            👁️ View Bill
+                                        </button>
+
+                                        <!-- Pay Bill Button (if PENDING) -->
+                                        {% if bill.status == 'PENDING' %}
+                                            <button 
+                                                type="button" 
+                                                class="btn-action-pay" 
+                                                title="Pay this bill via dummy gateway"
+                                                data-bill-id="{{ bill.id }}"
+                                                data-category="{{ bill.description }}"
+                                                data-amount="{{ bill.amount }}"
+                                                onclick="handlePayBillClick(this)"
+                                            >
+                                                💳 Pay Bill
+                                            </button>
+                                        {% endif %}
+
+                                        <!-- Raise Dispute Button (if not already disputed) -->
+                                        {% if bill.status != 'DISPUTED' %}
+                                            <button 
+                                                type="button" 
+                                                class="btn-action-dispute" 
+                                                title="Contest charges or raise a dispute"
+                                                data-bill-id="{{ bill.id }}"
+                                                data-category="{{ bill.description }}"
+                                                data-amount="{{ bill.amount }}"
+                                                onclick="handleDisputeBillClick(this)"
+                                            >
+                                                ⚠️ Raise Dispute
+                                            </button>
+                                        {% else %}
+                                            <span style="font-size: 0.75rem; color: #b91c1c; font-weight: 600; margin-left: 0.35rem;">
+                                                Dispute Active
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="padding: 2.5rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm); border: 1px dashed var(--color-border);">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📄</div>
+                    <p style="color: var(--color-text-muted); font-weight: 600; margin-bottom: 0;">
+                        No bills found matching this filter.
+                    </p>
+                    {% if status_filter %}
+                        <a href="{% url 'farmer_bills' %}" class="btn-secondary" style="display: inline-block; margin-top: 1rem;">
+                            View All Bills
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- ========================================== -->
+<!-- 1. DUMMY PAYMENT GATEWAY MODAL -->
+<!-- ========================================== -->
+<div id="paymentGatewayModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card" style="max-width: 580px;">
+        <div class="modal-header" style="background: #1b4332; color: #ffffff;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="font-size: 1.25rem;">🔒</span>
+                <div>
+                    <h3 style="margin: 0; color: #ffffff; font-size: 1.05rem;">PaddyNet Secure Pay</h3>
+                    <div style="font-size: 0.72rem; color: #a3e635; font-family: monospace;">SANDBOX SIMULATION GATEWAY</div>
+                </div>
+            </div>
+            <button type="button" class="modal-close" style="color: #ffffff;" onclick="closePaymentGatewayModal()">&times;</button>
+        </div>
+
+        <div class="modal-body" style="padding: 1.5rem;">
+            <!-- Order Banner -->
+            <div style="background: #f8faf7; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 700;">INVOICE TO PAY</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--color-primary-dark);" id="modalPayBillTitle">
+                        Bill #-- (Category)
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 700;">TOTAL PAYABLE</div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: var(--color-primary-dark);" id="modalPayBillAmount">
+                        ₹--
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method Form -->
+            <form id="dummyPaymentForm" method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="payment_method" id="modalPaymentMethodInput" value="UPI (Instant QR)">
+
+                <!-- Method Switcher -->
+                <div style="display: flex; gap: 0.4rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+                    <button type="button" class="gateway-tab active" id="modalTabBtnUpi" onclick="switchModalPayTab('upi')">
+                        <span>📱</span> UPI / QR
+                    </button>
+                    <button type="button" class="gateway-tab" id="modalTabBtnCard" onclick="switchModalPayTab('card')">
+                        <span>💳</span> Card
+                    </button>
+                    <button type="button" class="gateway-tab" id="modalTabBtnNetbanking" onclick="switchModalPayTab('netbanking')">
+                        <span>🏛️</span> Net Banking
+                    </button>
+                </div>
+
+                <!-- UPI Tab Content -->
+                <div id="modalTabUpi" class="gateway-tab-content">
+                    <div style="display: flex; gap: 1.25rem; align-items: center; background: #fafafa; border: 1px solid var(--color-border); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                        <div style="background: #ffffff; padding: 0.5rem; border: 2px solid #0f172a; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+                            <svg width="84" height="84" viewBox="0 0 100 100" fill="none">
+                                <rect width="100" height="100" fill="white"/>
+                                <rect x="8" y="8" width="30" height="30" fill="#0f172a"/>
+                                <rect x="13" y="13" width="20" height="20" fill="white"/>
+                                <rect x="17" y="17" width="12" height="12" fill="#0f172a"/>
+                                <rect x="62" y="8" width="30" height="30" fill="#0f172a"/>
+                                <rect x="67" y="13" width="20" height="20" fill="white"/>
+                                <rect x="71" y="17" width="12" height="12" fill="#0f172a"/>
+                                <rect x="8" y="62" width="30" height="30" fill="#0f172a"/>
+                                <rect x="13" y="67" width="20" height="20" fill="white"/>
+                                <rect x="17" y="71" width="12" height="12" fill="#0f172a"/>
+                                <rect x="44" y="44" width="14" height="14" fill="#1b4332"/>
+                                <rect x="44" y="12" width="6" height="6" fill="#0f172a"/>
+                                <rect x="44" y="78" width="8" height="8" fill="#0f172a"/>
+                                <rect x="74" y="44" width="8" height="8" fill="#0f172a"/>
+                                <rect x="68" y="72" width="14" height="8" fill="#0f172a"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary-dark); margin-bottom: 0.2rem;">
+                                Scan & Pay with any UPI App
+                            </div>
+                            <div style="font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">
+                                GPay &bull; PhonePe &bull; Paytm &bull; BHIM
+                            </div>
+                            <div style="font-size: 0.72rem; color: #15803d; font-weight: 600;">
+                                ✓ Verified Merchant: PaddyNet Padasekharam
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.3rem;">
+                            Or Enter VPA / UPI ID
+                        </label>
+                        <input type="text" class="form-input" id="modalUpiId" value="farmer@okhdfcbank" placeholder="e.g. mobile@upi">
+                    </div>
+
+                    <div style="display: flex; gap: 0.35rem; margin-bottom: 1.25rem;">
+                        <button type="button" class="btn-quick-upi" onclick="setModalUpi('GPay', 'farmer@okaxis')">GPay</button>
+                        <button type="button" class="btn-quick-upi" onclick="setModalUpi('PhonePe', 'farmer@ybl')">PhonePe</button>
+                        <button type="button" class="btn-quick-upi" onclick="setModalUpi('Paytm', 'farmer@paytm')">Paytm</button>
+                        <button type="button" class="btn-quick-upi" onclick="setModalUpi('BHIM', 'farmer@upi')">BHIM</button>
+                    </div>
+                </div>
+
+                <!-- Card Tab Content -->
+                <div id="modalTabCard" class="gateway-tab-content" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.78rem; color: var(--color-text-muted);">Credit / Debit Card</span>
+                        <button type="button" class="btn-link" style="font-size: 0.78rem; color: var(--color-primary); cursor: pointer;" onclick="fillModalDemoCard()">
+                            ⚡ Autofill Demo Card
+                        </button>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0.65rem;">
+                        <label style="display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.2rem;">Card Number</label>
+                        <input type="text" class="form-input" id="modalCardNumber" value="4532 8920 1827 9928" placeholder="Card Number">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.65rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.2rem;">Expiry</label>
+                            <input type="text" class="form-input" id="modalCardExpiry" value="09/29" placeholder="MM/YY">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.2rem;">CVV</label>
+                            <input type="password" class="form-input" id="modalCardCvv" value="432" maxlength="3" placeholder="CVV">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label style="display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.2rem;">Cardholder Name</label>
+                        <input type="text" class="form-input" id="modalCardHolder" value="{{ user.farmer_profile.full_name|default:user.username }}">
+                    </div>
+                </div>
+
+                <!-- Net Banking Tab Content -->
+                <div id="modalTabNetbanking" class="gateway-tab-content" style="display: none;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.4rem;">
+                        Select Bank for Internet Banking
+                    </label>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 0.4rem; margin-bottom: 1.25rem;">
+                        <label class="bank-option">
+                            <input type="radio" name="modalBankChoice" value="State Bank of India" checked onchange="setModalBank(this.value)">
+                            <span>🏛️ State Bank of India</span>
+                        </label>
+                        <label class="bank-option">
+                            <input type="radio" name="modalBankChoice" value="Canara Bank" onchange="setModalBank(this.value)">
+                            <span>🏛️ Canara Bank</span>
+                        </label>
+                        <label class="bank-option">
+                            <input type="radio" name="modalBankChoice" value="Kerala Gramin Bank" onchange="setModalBank(this.value)">
+                            <span>🌾 Kerala Gramin Bank</span>
+                        </label>
+                        <label class="bank-option">
+                            <input type="radio" name="modalBankChoice" value="Federal Bank" onchange="setModalBank(this.value)">
+                            <span>🏛️ Federal Bank</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sandbox Security Disclaimer -->
+                <div style="font-size: 0.75rem; color: #64748b; background: #f8fafc; padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span>🛡️</span> 256-Bit SSL Demo Sandbox &bull; Instant settlement simulation without actual charges.
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button type="button" class="btn-secondary" onclick="closePaymentGatewayModal()">Cancel</button>
+                    <button type="submit" id="modalPaySubmitBtn" class="btn-primary" style="padding: 0.75rem 1.25rem;">
+                        <span>🔒 Pay & Authorize ₹-- &rarr;</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 2. VIEW BILL & RECEIPT MODAL -->
+<!-- ========================================== -->
+<div id="viewBillModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card" style="max-width: 620px;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.25rem;">🧾</span>
+                <h3 style="margin: 0; font-size: 1.1rem; color: var(--color-primary-dark);">Bill & Settlement Invoice</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="closeViewBillModal()">&times;</button>
+        </div>
+
+        <div class="modal-body" id="printableBillArea" style="padding: 1.5rem;">
+            <!-- Header section of bill -->
+            <div style="border-bottom: 2px solid var(--color-border); padding-bottom: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h4 style="margin: 0 0 0.25rem 0; color: var(--color-primary-dark); font-size: 1.15rem;">
+                        PaddyNet Padasekharam
+                    </h4>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--color-text-muted);">
+                        Agricultural Community Invoicing & Cooperative Operations
+                    </p>
+                </div>
+                <div style="text-align: right;">
+                    <span id="viewBillStatusBadge" class="status-badge status-pending">Pending</span>
+                </div>
+            </div>
+
+            <!-- Bill Details Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                <div style="background: #f8faf7; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700;">BILLED TO</div>
+                    <div style="font-weight: 700; color: var(--color-primary-dark); font-size: 0.95rem;" id="viewBillFarmerName">
+                        {{ user.farmer_profile.full_name|default:user.username }}
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--color-text-muted);">
+                        ID: {{ user.farmer_profile.farmer_id|default:"PDN-FARMER" }}
+                        {% if user.farmer_profile.village %} &bull; {{ user.farmer_profile.village }}{% endif %}
+                    </div>
+                </div>
+
+                <div style="background: #f8faf7; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700;">INVOICE DETAILS</div>
+                    <div style="font-weight: 700; font-family: monospace; color: var(--color-primary-dark); font-size: 0.95rem;" id="viewBillNumber">
+                        #--
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--color-text-muted);" id="viewBillDate">
+                        Issued: --
+                    </div>
+                </div>
+            </div>
+
+            <!-- Particulars Table -->
+            <div style="border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1.25rem;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                    <thead style="background: #f1f5f2; color: var(--color-primary-dark); text-align: left;">
+                        <tr>
+                            <th style="padding: 0.65rem 0.85rem;">Particulars / Category</th>
+                            <th style="padding: 0.65rem 0.85rem; text-align: right;">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-top: 1px solid var(--color-border);">
+                            <td style="padding: 0.75rem 0.85rem;">
+                                <strong id="viewBillCategory">--</strong>
+                                <div id="viewBillNotes" style="font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.2rem;"></div>
+                            </td>
+                            <td style="padding: 0.75rem 0.85rem; text-align: right; font-weight: 700; font-size: 1rem;" id="viewBillAmount">
+                                ₹--
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot style="background: #f8faf7; border-top: 2px solid var(--color-border); font-weight: 700;">
+                        <tr>
+                            <td style="padding: 0.75rem 0.85rem; color: var(--color-primary-dark);">Total Amount Due / Settled:</td>
+                            <td style="padding: 0.75rem 0.85rem; text-align: right; color: var(--color-primary-dark); font-size: 1.15rem;" id="viewBillTotal">₹--</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Attached Bill Document Section -->
+            <div id="viewBillDocSection" style="margin-bottom: 1.25rem; display: none;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                    Official Bill Voucher / Document:
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; background: #f8faf7; border: 1px solid var(--color-border); padding: 0.75rem 1rem; border-radius: var(--radius-sm);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span id="viewBillDocIcon" style="font-size: 1.25rem;">📄</span>
+                        <div>
+                            <div style="font-size: 0.85rem; font-weight: 600;" id="viewBillDocName">voucher.pdf</div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-muted);">Uploaded by administration</div>
+                        </div>
+                    </div>
+                    <a id="viewBillDocLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">
+                        Open Document &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Payment Settlement Receipt (Shown if PAID) -->
+            <div id="viewBillPaidReceipt" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #166534;">✓ PAYMENT CONFIRMATION</span>
+                    <span style="font-size: 0.75rem; color: #15803d;" id="viewBillPaidDate">--</span>
+                </div>
+                <div style="font-size: 0.825rem; color: #14532d;">
+                    Transaction Ref: <strong style="font-family: monospace;" id="viewBillTxnRef">--</strong>
+                </div>
+                <div style="font-size: 0.825rem; color: #14532d;">
+                    Payment Method: <span id="viewBillPaymentMethod">--</span>
+                </div>
+            </div>
+
+            <!-- Dispute Status Notice (Shown if DISPUTED) -->
+            <div id="viewBillDisputeNotice" style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #991b1b;">⚠️ DISPUTE RECORDED</span>
+                    <span style="font-size: 0.75rem; color: #b91c1c;" id="viewBillDisputeDate">--</span>
+                </div>
+                <div style="font-size: 0.825rem; color: #7f1d1d;" id="viewBillDisputeReasonText">
+                    --
+                </div>
+                <div style="font-size: 0.75rem; color: #991b1b; margin-top: 0.35rem; font-style: italic;">
+                    Our Administrative Committee is reviewing your query. You will be notified of updates.
+                </div>
+            </div>
+
+            <!-- Footer Action Controls -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+                <button type="button" class="btn-secondary" onclick="window.print()" style="font-size: 0.8rem;">
+                    🖨️ Print Invoice
+                </button>
+                <div style="display: flex; gap: 0.5rem;" id="viewBillFooterActions">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 3. RAISE DISPUTE MODAL -->
+<!-- ========================================== -->
+<div id="raiseDisputeModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card" style="max-width: 520px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #b91c1c; font-size: 1.1rem;">
+                <span>⚠️</span> Raise Dispute on Bill
+            </h3>
+            <button type="button" class="modal-close" onclick="closeRaiseDisputeModal()">&times;</button>
+        </div>
+
+        <form id="disputeForm" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+                    <div style="font-size: 0.825rem; font-weight: 700; color: #92400e; margin-bottom: 0.2rem;" id="disputeModalBillTitle">
+                        Bill #-- (Category)
+                    </div>
+                    <div style="font-size: 0.85rem; color: #78350f;">
+                        Amount: <strong id="disputeModalBillAmount">₹--</strong>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="disputeTypeSelect" style="display: block; font-weight: 700; font-size: 0.85rem; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                        Dispute Category / Reason *
+                    </label>
+                    <select name="dispute_type" id="disputeTypeSelect" class="form-input" required>
+                        <option value="Incorrect operational hours / rate">Incorrect operational hours or meter calculation</option>
+                        <option value="Service not availed / not received">Service was not availed or parcel not covered</option>
+                        <option value="Incorrect acreage or bund length applied">Incorrect acreage or bund measurement applied</option>
+                        <option value="Duplicate bill or already settled offline">Duplicate bill / already settled with field manager</option>
+                        <option value="Overcharged compared to approved committee rate">Overcharged compared to approved committee rate</option>
+                        <option value="Other objection">Other objection / error</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="disputeDetailsInput" style="display: block; font-weight: 700; font-size: 0.85rem; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                        Detailed Explanation / Supporting Remarks *
+                    </label>
+                    <textarea 
+                        name="dispute_details" 
+                        id="disputeDetailsInput" 
+                        class="form-input" 
+                        rows="4" 
+                        required
+                        placeholder="Please describe the discrepancy clearly (e.g. tractor was used for 2 hours instead of 4 hours, or plot was dry during the pumping window)..."
+                    ></textarea>
+                </div>
+
+                <div style="font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.4; margin-bottom: 1.5rem;">
+                    ℹ️ Submitting this form will flag Bill #<span id="disputeBillIdSpan">--</span> as <strong>DISPUTED</strong> in the community ledger. An administrator will review your objection before further dues are processed.
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button type="button" class="btn-secondary" onclick="closeRaiseDisputeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" style="background: #b91c1c; border-color: #991b1b; padding: 0.7rem 1.25rem;">
+                        <span>Submit Dispute &rarr;</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function handleViewBillClick(btn) {
+    var d = btn.dataset;
+    openViewBillModal({
+        id: d.billId,
+        category: d.category,
+        amount: d.amount,
+        dateIssued: d.dateIssued,
+        status: d.status,
+        notes: d.notes,
+        fileUrl: d.fileUrl,
+        isPdf: d.isPdf,
+        fileName: d.fileName,
+        paymentMethod: d.paymentMethod,
+        transactionId: d.transactionId,
+        paidAt: d.paidAt,
+        disputeReason: d.disputeReason,
+        disputedAt: d.disputedAt
+    });
+}
+
+function handlePayBillClick(btn) {
+    var d = btn.dataset;
+    openPaymentGatewayModal(d.billId, d.category, d.amount);
+}
+
+function handleDisputeBillClick(btn) {
+    var d = btn.dataset;
+    openRaiseDisputeModal(d.billId, d.category, d.amount);
+}
+
+// =====================================
+// PAYMENT GATEWAY MODAL LOGIC
+// =====================================
+function openPaymentGatewayModal(billId, category, amount) {
+    document.getElementById('modalPayBillTitle').innerText = 'Bill #' + billId + ' — ' + category;
+    document.getElementById('modalPayBillAmount').innerText = '₹' + amount;
+    document.getElementById('modalPaySubmitBtn').innerHTML = '<span>🔒 Pay & Authorize ₹' + amount + ' &rarr;</span>';
+    
+    var form = document.getElementById('dummyPaymentForm');
+    form.action = '/farmer/bills/' + billId + '/pay/';
+    
+    // Reset to UPI tab
+    switchModalPayTab('upi');
+    
+    document.getElementById('paymentGatewayModal').style.display = 'flex';
+}
+
+function closePaymentGatewayModal() {
+    document.getElementById('paymentGatewayModal').style.display = 'none';
+}
+
+function switchModalPayTab(tabName) {
+    document.getElementById('modalTabBtnUpi').classList.remove('active');
+    document.getElementById('modalTabBtnCard').classList.remove('active');
+    document.getElementById('modalTabBtnNetbanking').classList.remove('active');
+    
+    document.getElementById('modalTabUpi').style.display = 'none';
+    document.getElementById('modalTabCard').style.display = 'none';
+    document.getElementById('modalTabNetbanking').style.display = 'none';
+    
+    if (tabName === 'upi') {
+        document.getElementById('modalTabBtnUpi').classList.add('active');
+        document.getElementById('modalTabUpi').style.display = 'block';
+        document.getElementById('modalPaymentMethodInput').value = 'UPI (' + document.getElementById('modalUpiId').value + ')';
+    } else if (tabName === 'card') {
+        document.getElementById('modalTabBtnCard').classList.add('active');
+        document.getElementById('modalTabCard').style.display = 'block';
+        document.getElementById('modalPaymentMethodInput').value = 'Debit Card (Ending in 9928)';
+    } else if (tabName === 'netbanking') {
+        document.getElementById('modalTabBtnNetbanking').classList.add('active');
+        document.getElementById('modalTabNetbanking').style.display = 'block';
+        var selectedBank = document.querySelector('input[name="modalBankChoice"]:checked').value;
+        document.getElementById('modalPaymentMethodInput').value = 'Net Banking (' + selectedBank + ')';
+    }
+}
+
+function setModalUpi(provider, vpa) {
+    document.getElementById('modalUpiId').value = vpa;
+    document.getElementById('modalPaymentMethodInput').value = 'UPI (' + provider + ' - ' + vpa + ')';
+}
+
+function fillModalDemoCard() {
+    document.getElementById('modalCardNumber').value = '4532 8920 1827 9928';
+    document.getElementById('modalCardExpiry').value = '11/29';
+    document.getElementById('modalCardCvv').value = '432';
+    document.getElementById('modalPaymentMethodInput').value = 'Debit Card (Ending in 9928)';
+}
+
+function setModalBank(bankName) {
+    document.getElementById('modalPaymentMethodInput').value = 'Net Banking (' + bankName + ')';
+}
+
+document.getElementById('dummyPaymentForm').addEventListener('submit', function() {
+    var btn = document.getElementById('modalPaySubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Processing Simulated Transaction...</span>';
+});
+
+// =====================================
+// VIEW BILL MODAL LOGIC
+// =====================================
+function openViewBillModal(bill) {
+    document.getElementById('viewBillNumber').innerText = '#' + bill.id;
+    document.getElementById('viewBillDate').innerText = 'Issued: ' + bill.dateIssued;
+    document.getElementById('viewBillCategory').innerText = bill.category;
+    document.getElementById('viewBillNotes').innerText = bill.notes ? ('Remarks: ' + bill.notes) : '';
+    document.getElementById('viewBillAmount').innerText = '₹' + bill.amount;
+    document.getElementById('viewBillTotal').innerText = '₹' + bill.amount;
+    
+    // Status Badge
+    var statusBadge = document.getElementById('viewBillStatusBadge');
+    if (bill.status === 'PAID') {
+        statusBadge.className = 'status-badge status-verified';
+        statusBadge.innerText = 'Paid in Full';
+    } else if (bill.status === 'DISPUTED') {
+        statusBadge.className = 'status-badge status-disputed';
+        statusBadge.innerText = '⚠️ Disputed';
+    } else {
+        statusBadge.className = 'status-badge status-pending';
+        statusBadge.innerText = 'Pending Payment';
+    }
+    
+    // File Document Section
+    var docSection = document.getElementById('viewBillDocSection');
+    if (bill.fileUrl) {
+        docSection.style.display = 'block';
+        document.getElementById('viewBillDocLink').href = bill.fileUrl;
+        document.getElementById('viewBillDocName').innerText = bill.fileName || 'Attached Bill Document';
+        document.getElementById('viewBillDocIcon').innerText = (bill.isPdf === 'true') ? '📄' : '🖼️';
+    } else {
+        docSection.style.display = 'none';
+    }
+    
+    // Paid Receipt section
+    var paidSection = document.getElementById('viewBillPaidReceipt');
+    if (bill.status === 'PAID') {
+        paidSection.style.display = 'block';
+        document.getElementById('viewBillPaidDate').innerText = bill.paidAt || 'Settled';
+        document.getElementById('viewBillTxnRef').innerText = bill.transactionId || 'TXN-PDN-ONLINE';
+        document.getElementById('viewBillPaymentMethod').innerText = bill.paymentMethod || 'Online Gateway';
+    } else {
+        paidSection.style.display = 'none';
+    }
+    
+    // Disputed Notice section
+    var disputeSection = document.getElementById('viewBillDisputeNotice');
+    if (bill.status === 'DISPUTED') {
+        disputeSection.style.display = 'block';
+        document.getElementById('viewBillDisputeDate').innerText = bill.disputedAt || 'Recently';
+        document.getElementById('viewBillDisputeReasonText').innerText = bill.disputeReason || 'Disputed by farmer.';
+    } else {
+        disputeSection.style.display = 'none';
+    }
+    
+    // Action buttons in modal footer
+    var footerActions = document.getElementById('viewBillFooterActions');
+    footerActions.innerHTML = '';
+    
+    if (bill.status === 'PENDING') {
+        var payBtn = document.createElement('button');
+        payBtn.type = 'button';
+        payBtn.className = 'btn-primary';
+        payBtn.style.padding = '0.55rem 1rem';
+        payBtn.innerHTML = '<span>💳 Pay Now (₹' + bill.amount + ')</span>';
+        payBtn.onclick = function() {
+            closeViewBillModal();
+            openPaymentGatewayModal(bill.id, bill.category, bill.amount);
+        };
+        footerActions.appendChild(payBtn);
+    }
+    
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn-secondary';
+    closeBtn.innerText = 'Close';
+    closeBtn.onclick = closeViewBillModal;
+    footerActions.appendChild(closeBtn);
+    
+    document.getElementById('viewBillModal').style.display = 'flex';
+}
+
+function closeViewBillModal() {
+    document.getElementById('viewBillModal').style.display = 'none';
+}
+
+// =====================================
+// RAISE DISPUTE MODAL LOGIC
+// =====================================
+function openRaiseDisputeModal(billId, category, amount) {
+    document.getElementById('disputeModalBillTitle').innerText = 'Bill #' + billId + ' — ' + category;
+    document.getElementById('disputeModalBillAmount').innerText = '₹' + amount;
+    document.getElementById('disputeBillIdSpan').innerText = billId;
+    
+    var form = document.getElementById('disputeForm');
+    form.action = '/farmer/bills/' + billId + '/dispute/';
+    
+    document.getElementById('disputeDetailsInput').value = '';
+    document.getElementById('raiseDisputeModal').style.display = 'flex';
+}
+
+function closeRaiseDisputeModal() {
+    document.getElementById('raiseDisputeModal').style.display = 'none';
+}
+</script>
+
+<style>
+.filter-pill {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.825rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: var(--transition);
+    color: var(--color-text-muted);
+}
+.filter-active-all {
+    background: #ffffff;
+    color: var(--color-primary-dark);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.filter-active-pending {
+    background: #ffffff;
+    color: #b45309;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.filter-active-paid {
+    background: #ffffff;
+    color: var(--color-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.filter-active-disputed {
+    background: #ffffff;
+    color: #b91c1c;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.status-badge.status-disputed {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.btn-doc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    text-decoration: none;
+    transition: var(--transition);
+}
+.btn-doc-pill:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.btn-action-view {
+    background: #f8faf7;
+    border: 1px solid var(--color-border);
+    color: var(--color-primary-dark);
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    margin-right: 0.35rem;
+}
+.btn-action-view:hover {
+    background: #eaf5ee;
+    border-color: var(--color-primary);
+}
+
+.btn-action-pay {
+    background: #1b4332;
+    border: 1px solid #1b4332;
+    color: #ffffff;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    margin-right: 0.35rem;
+}
+.btn-action-pay:hover {
+    background: #2d6a4f;
+    box-shadow: 0 2px 4px rgba(27, 67, 50, 0.2);
+}
+
+.btn-action-dispute {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.btn-action-dispute:hover {
+    background: #fee2e2;
+    border-color: #ef4444;
+}
+
+.gateway-tab {
+    background: none;
+    border: none;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: var(--transition);
+}
+.gateway-tab.active {
+    background: #eaf5ee;
+    color: var(--color-primary-dark);
+}
+
+.btn-quick-upi {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.45rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.btn-quick-upi:hover {
+    border-color: var(--color-primary);
+    background: #f8faf7;
+}
+
+.bank-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    background: #f8faf7;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.825rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.bank-option:hover {
+    background: #f1f5f2;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+.modal-card {
+    background: #ffffff;
+    border-radius: var(--radius-md);
+    width: 100%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    animation: modalSlide 0.2s ease-out;
+}
+@keyframes modalSlide {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+.modal-close:hover {
+    color: var(--color-text-main);
+}
+</style>
+{% endblock %}

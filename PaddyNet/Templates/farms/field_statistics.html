@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+
+{% block title %}Field Statistics &amp; Yield Analytics — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-header">
+        <div>
+            <span class="role-badge badge-farmer">Productivity Analytics</span>
+            <h1 class="dashboard-title">Field Seasonal Yield Statistics</h1>
+            <p class="dashboard-subtitle">Track historical harvest outputs, assess productivity trends, and compare yield per season.</p>
+        </div>
+        <div class="field-header-actions">
+            <a href="{% url 'farmer_dashboard' %}" class="btn-secondary">
+                <span>&larr; Dashboard</span>
+            </a>
+            <a href="{% url 'field_list' %}" class="btn-secondary">
+                <span>🌾 Manage Fields</span>
+            </a>
+            {% if selected_field %}
+                <a href="{% url 'field_detail' selected_field.id %}" class="btn-primary">
+                    <span>📋 Field Timeline</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if farmer_fields %}
+        <!-- Field Selection Dropdown Bar -->
+        <div class="stats-filter-bar">
+            <form method="get" class="filter-group" id="field-selector-form" style="width: 100%; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 260px;">
+                    <label for="field-select" style="font-weight: 700; color: var(--color-primary-dark); white-space: nowrap;">
+                        🌾 Select Paddy Field:
+                    </label>
+                    <select id="field-select" name="field" class="form-input" style="max-width: 380px;" onchange="this.form.submit();">
+                        {% for f in farmer_fields %}
+                            <option value="{{ f.id }}" {% if selected_field and selected_field.id == f.id %}selected{% endif %}>
+                                {{ f.field_name }} ({{ f.extent_area }} acres{% if f.field_identifier %}, {{ f.field_identifier }}{% endif %})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if selected_field %}
+                    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--color-text-muted);">
+                        <span>📍 Location: <strong>{{ selected_field.location }}</strong></span>
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if selected_field %}
+            <!-- Summary Metrics -->
+            <div class="field-stat-row">
+                <div class="stat-metric-card">
+                    <div class="metric-icon">📐</div>
+                    <div class="metric-details">
+                        <span class="metric-label">Field Area</span>
+                        <span class="metric-val">{{ selected_field.extent_area }} <span style="font-size: 0.95rem; font-weight: 600; color: var(--color-text-muted);">Acres</span></span>
+                    </div>
+                </div>
+
+                <div class="stat-metric-card">
+                    <div class="metric-icon">🚜</div>
+                    <div class="metric-details">
+                        <span class="metric-label">Cumulative Harvest</span>
+                        <span class="metric-val">{{ total_yield_all|floatformat:0 }} <span style="font-size: 0.95rem; font-weight: 600; color: var(--color-text-muted);">kg</span></span>
+                    </div>
+                </div>
+
+                <div class="stat-metric-card">
+                    <div class="metric-icon">🏆</div>
+                    <div class="metric-details">
+                        <span class="metric-label">Peak Season Yield</span>
+                        <span class="metric-val">{{ highest_season_yield|floatformat:0 }} <span style="font-size: 0.95rem; font-weight: 600; color: var(--color-text-muted);">kg</span></span>
+                    </div>
+                </div>
+
+                <div class="stat-metric-card">
+                    <div class="metric-icon">🗓️</div>
+                    <div class="metric-details">
+                        <span class="metric-label">Seasons Logged</span>
+                        <span class="metric-val">{{ season_data|length }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if season_data %}
+                <!-- Chart.js Seasonal Bar Chart -->
+                <div class="chart-card-box">
+                    <div class="chart-card-header">
+                        <h2 class="chart-card-title">📊 Total Harvest Yield by Season (kg)</h2>
+                        <p class="chart-card-subtitle">Comparative harvest output for {{ selected_field.field_name }} across tracked crop cycles.</p>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="seasonYieldChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Detailed Season Table -->
+                <div style="margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--color-primary-dark);">
+                            📋 Seasonal Yield &amp; Operations Table
+                        </h2>
+                        <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+                            Grouped by Season &amp; Year
+                        </span>
+                    </div>
+
+                    <div class="admin-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Season / Year</th>
+                                    <th>Total Yield (kg)</th>
+                                    <th>Yield per Acre (kg/acre)</th>
+                                    <th>Harvest Records</th>
+                                    <th>Total Activities Logged</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in season_data %}
+                                    <tr>
+                                        <td>
+                                            <strong style="color: var(--color-primary-dark); font-size: 0.95rem;">
+                                                🌾 {{ row.season_year }}
+                                            </strong>
+                                        </td>
+                                        <td>
+                                            {% if row.total_yield > 0 %}
+                                                <span style="font-weight: 800; color: var(--color-primary-dark); font-size: 1.05rem;">
+                                                    {{ row.total_yield|floatformat:1 }} kg
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">— (No harvest recorded)</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if row.yield_per_acre > 0 %}
+                                                <span style="font-weight: 700; color: var(--color-primary);">
+                                                    {{ row.yield_per_acre|floatformat:1 }} kg / acre
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if row.harvest_count > 0 %}
+                                                <span class="activity-badge badge-harvest" style="font-size: 0.75rem;">
+                                                    {{ row.harvest_count }} Harvest{{ row.harvest_count|pluralize }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">None</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span style="font-weight: 600;">{{ row.activity_count }}</span> activities
+                                        </td>
+                                        <td>
+                                            {% if row.harvest_count > 0 %}
+                                                <span class="status-badge status-verified">Completed</span>
+                                            {% else %}
+                                                <span class="status-badge status-pending">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty-state-card">
+                    <div class="empty-state-icon">📊</div>
+                    <h3 class="empty-state-title">No Farming Activities Recorded for this Field</h3>
+                    <p class="empty-state-desc">
+                        No seasonal activities or harvest yield entries were found for <strong>{{ selected_field.field_name }}</strong>.
+                        Head over to the field's timeline to start logging operations.
+                    </p>
+                    <a href="{% url 'field_detail' selected_field.id %}" class="btn-primary" style="margin-top: 0.5rem;">
+                        <span>➕ Go to Field Timeline &amp; Log Activity</span>
+                    </a>
+                </div>
+            {% endif %}
+        {% endif %}
+    {% else %}
+        <div class="empty-state-card">
+            <div class="empty-state-icon">🌾</div>
+            <h3 class="empty-state-title">No Fields Found</h3>
+            <p class="empty-state-desc">You need to register at least one paddy field before seasonal yield statistics can be computed.</p>
+            <a href="{% url 'field_create' %}" class="btn-primary" style="margin-top: 0.5rem;">
+                <span>➕ Register Field</span>
+            </a>
+        </div>
+    {% endif %}
+</section>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="chart-labels-data" type="application/json">{{ chart_labels_json|safe }}</script>
+<script id="chart-yields-data" type="application/json">{{ chart_yields_json|safe }}</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const canvas = document.getElementById('seasonYieldChart');
+        if (!canvas) return;
+
+        const labelsEl = document.getElementById('chart-labels-data');
+        const yieldsEl = document.getElementById('chart-yields-data');
+        const labels = labelsEl ? JSON.parse(labelsEl.textContent || '[]') : [];
+        const yields = yieldsEl ? JSON.parse(yieldsEl.textContent || '[]') : [];
+
+        if (!labels || labels.length === 0) return;
+
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Paddy Harvest Yield (kg)',
+                    data: yields,
+                    backgroundColor: 'rgba(45, 106, 79, 0.85)',
+                    borderColor: '#1b4332',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    hoverBackgroundColor: 'rgba(64, 145, 108, 0.95)',
+                    maxBarThickness: 60,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: "'Plus Jakarta Sans', sans-serif",
+                                weight: '600'
+                            },
+                            color: '#132a13'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString() + ' kg';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Yield (kg)',
+                            color: '#4f6d5a',
+                            font: {
+                                family: "'Plus Jakarta Sans', sans-serif",
+                                weight: '700'
+                            }
+                        },
+                        grid: {
+                            color: '#e2ece9'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Season & Year',
+                            color: '#4f6d5a',
+                            font: {
+                                family: "'Plus Jakarta Sans', sans-serif",
+                                weight: '700'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

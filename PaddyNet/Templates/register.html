@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Choose Account Type — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card selection-card">
+        <div class="auth-header">
+            <div class="auth-icon">🌱</div>
+            <h2 class="auth-title">Join PaddyNet Portal</h2>
+            <p class="auth-subtitle">Select your role to get started with dedicated farming &amp; bidding tools</p>
+        </div>
+
+        <div class="role-selection-grid">
+            <a href="{% url 'register_farmer' %}" class="role-card">
+                <div class="role-icon-wrapper icon-farmer">
+                    🌱
+                </div>
+                <h3 class="role-card-title">Register as Farmer</h3>
+                <p class="role-card-desc">Log field activities, track crop expenditure, and view yield forecasts for your paddy fields.</p>
+                <span class="btn-secondary btn-sm">Sign Up as Farmer &rarr;</span>
+            </a>
+
+            <a href="{% url 'register_millowner' %}" class="role-card">
+                <div class="role-icon-wrapper icon-mill">
+                    🌾
+                </div>
+                <h3 class="role-card-title">Register as Mill Owner</h3>
+                <p class="role-card-desc">Browse harvest batches, submit competitive bids directly on paddy lots, and manage contracts.</p>
+                <span class="btn-secondary btn-sm">Sign Up as Mill Owner &rarr;</span>
+            </a>
+        </div>
+
+        <div class="auth-footer">
+            <p>Already registered? <a href="{% url 'login' %}" class="auth-link">Sign In to your account</a></p>
+        </div>
+    </div>
+</section>
+{% endblock %}

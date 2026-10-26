@@ -1,0 +1,707 @@
+{% extends 'base.html' %}
+
+{% block title %}Mill Owner Bids & Offers — PaddyNet Farmer Portal{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-welcome">
+                <span class="role-badge badge-farmer">Produce Offers &amp; Bids</span>
+                <h1 class="dashboard-title">Mill Owner Bids on Your Harvests</h1>
+                <p class="dashboard-subtitle">
+                    Review and compare direct purchase offers placed on your paddy parcels by verified rice mill owners.
+                </p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'farmer_dashboard' %}" class="btn-secondary">
+                    <span>&larr; Farmer Dashboard</span>
+                </a>
+                <a href="{% url 'field_list' %}" class="btn-secondary">
+                    <span>🌾 My Fields</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="field-stat-row" style="margin-bottom: 2rem;">
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #ecfdf5; color: #047857;">💰</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Offers Received</span>
+                    <span class="metric-val">{{ total_bids_count }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">Bid{{ total_bids_count|pluralize }}</span></span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #e0f2fe; color: #0284c7;">🏆</div>
+                <div class="metric-details">
+                    <span class="metric-label">Highest Offer Recorded</span>
+                    <span class="metric-val">
+                        {% if highest_offer %}
+                            ₹{{ highest_offer|floatformat:2 }}
+                        {% else %}
+                            <span style="font-size: 1rem; color: var(--color-text-muted); font-weight: 600;">No offers yet</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fef3c7; color: #b45309;">🌾</div>
+                <div class="metric-details">
+                    <span class="metric-label">Your Registered Fields</span>
+                    <span class="metric-val">{{ total_fields_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Field-by-Field Bids Section -->
+        {% if fields_with_bids %}
+            <div style="display: flex; flex-direction: column; gap: 2rem;">
+                {% for item in fields_with_bids %}
+                    <div class="dashboard-card" style="margin-bottom: 0; border-top: 4px solid var(--color-primary);">
+                        <!-- Field Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <h3 style="margin: 0; font-size: 1.25rem; color: var(--color-primary-dark);">
+                                        🌾 {{ item.field.field_name }}
+                                    </h3>
+                                    {% if item.field.field_identifier %}
+                                        <span style="font-family: monospace; font-size: 0.8rem; background: #e2ece9; color: var(--color-text-main); padding: 0.15rem 0.45rem; border-radius: 4px;">
+                                            {{ item.field.field_identifier }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.35rem;">
+                                    📍 <strong>Location:</strong> {{ item.field.location }} &bull; 📐 <strong>Extent:</strong> {{ item.field.extent_area }} Acres
+                                    {% if item.latest_harvest %}
+                                        &bull; 🚜 <strong>Latest Harvest:</strong> {{ item.latest_harvest.yield_kg|floatformat:0 }} kg ({{ item.latest_harvest.season_year }})
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                {% if item.bid_count > 0 %}
+                                    <span class="status-badge status-verified" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+                                        {{ item.bid_count }} Offer{{ item.bid_count|pluralize }} Received
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge status-pending" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+                                        0 Bids Placed
+                                    </span>
+                                {% endif %}
+                                <a href="{% url 'field_detail' item.field.id %}" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                                    Field Timeline &rarr;
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Bids List / Table for this field -->
+                        {% if item.bids %}
+                            <div class="admin-table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px;">Rank</th>
+                                            <th>Mill Owner / Enterprise</th>
+                                            <th>Location &amp; Contact</th>
+                                            <th>Offer Amount (₹)</th>
+                                            <th>Date Placed</th>
+                                            <th>Logistics &amp; Terms</th>
+                                            <th style="min-width: 240px; text-align: center;">Decision &amp; Bargain</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for bid in item.bids %}
+                                            <tr {% if bid.status == 'ACCEPTED' %}style="background: #f0fdf4;"{% elif bid.status == 'BARGAINING' %}style="background: #eff6ff;"{% elif bid.status == 'REJECTED' %}style="background: #fef2f2; opacity: 0.85;"{% elif forloop.first %}style="background: #fcfdfc;"{% endif %}>
+                                                <td>
+                                                    {% if forloop.first %}
+                                                        <span style="display: inline-flex; align-items: center; justify-content: center; background: #22c55e; color: #ffffff; font-weight: 800; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-full);">
+                                                            TOP #1
+                                                        </span>
+                                                    {% else %}
+                                                        <span style="font-weight: 700; color: var(--color-text-muted); font-size: 0.85rem;">
+                                                             #{{ forloop.counter }}
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div style="font-weight: 700; color: var(--color-primary-dark); font-size: 0.95rem;">
+                                                        {% if bid.millowner.millowner_profile.mill_name %}
+                                                            🏭 {{ bid.millowner.millowner_profile.mill_name }}
+                                                        {% else %}
+                                                            {{ bid.millowner.username }}
+                                                        {% endif %}
+                                                    </div>
+                                                    {% if bid.millowner.millowner_profile.fssai_license_number %}
+                                                        <span style="font-family: monospace; font-size: 0.75rem; color: var(--color-text-muted);">
+                                                            FSSAI: {{ bid.millowner.millowner_profile.fssai_license_number }}
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div>{{ bid.millowner.millowner_profile.mill_location|default:"—" }}</div>
+                                                    {% if bid.millowner.millowner_profile.phone_number %}
+                                                        <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.15rem;">
+                                                            📞 <strong>{{ bid.millowner.millowner_profile.phone_number }}</strong>
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <strong style="color: #047857; font-size: 1.15rem; font-weight: 800;">
+                                                        ₹{{ bid.amount }}
+                                                    </strong>
+                                                    {% if bid.per_kg_rate %}
+                                                        <div style="font-size: 0.8rem; color: #166534; font-weight: 600; margin-top: 0.2rem;">
+                                                            ₹{{ bid.per_kg_rate }}/kg
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+                                                        {{ bid.date|date:"M d, Y" }}
+                                                        <small style="display: block; font-size: 0.75rem;">{{ bid.date|date:"g:i a" }}</small>
+                                                    </span>
+                                                </td>
+                                                <td style="max-width: 220px; font-size: 0.85rem;">
+                                                    {{ bid.notes|default:"Standard farm-gate settlement" }}
+                                                </td>
+                                                <td style="text-align: center; vertical-align: middle;">
+                                                    <!-- Status Badge -->
+                                                    <div style="margin-bottom: 0.45rem;">
+                                                        {% if bid.status == 'ACCEPTED' %}
+                                                            <span class="status-badge" style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.75rem; font-weight: 700;">
+                                                                ✓ Accepted
+                                                            </span>
+                                                        {% elif bid.status == 'REJECTED' %}
+                                                            <span class="status-badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-size: 0.75rem; font-weight: 700;">
+                                                                ✕ Declined
+                                                            </span>
+                                                        {% elif bid.status == 'BARGAINING' %}
+                                                            <span class="status-badge" style="background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; font-size: 0.75rem; font-weight: 700;">
+                                                                💬 Counter-Offer Sent
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="status-badge status-pending" style="font-size: 0.75rem; font-weight: 700;">
+                                                                ⏳ Pending Review
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+
+                                                    <!-- Counter Offer / Notes Display -->
+                                                    {% if bid.status == 'BARGAINING' %}
+                                                        <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.775rem; text-align: left; margin-bottom: 0.45rem;">
+                                                            {% if bid.counter_amount %}
+                                                                <div style="color: #1e40af; font-weight: 700;">
+                                                                    Your Counter: ₹{{ bid.counter_amount }}
+                                                                    {% if bid.counter_per_kg_rate %}<span style="color: #047857; font-weight: 600;"> (₹{{ bid.counter_per_kg_rate }}/kg)</span>{% endif %}
+                                                                </div>
+                                                            {% elif bid.counter_per_kg_rate %}
+                                                                <div style="color: #047857; font-weight: 700;">Your Counter Rate: ₹{{ bid.counter_per_kg_rate }}/kg</div>
+                                                            {% endif %}
+                                                            {% if bid.farmer_note %}
+                                                                <div style="color: #475569; margin-top: 0.2rem; font-style: italic;">
+                                                                    <strong>Note to Mill:</strong> “{{ bid.farmer_note }}”
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% elif bid.farmer_note %}
+                                                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.75rem; text-align: left; margin-bottom: 0.45rem; color: #475569; font-style: italic;">
+                                                            <strong>Your Note:</strong> “{{ bid.farmer_note }}”
+                                                        </div>
+                                                    {% endif %}
+
+                                                    <!-- Action Buttons -->
+                                                    <div style="display: flex; gap: 0.35rem; justify-content: center; flex-wrap: wrap;">
+                                                        {% if bid.status != 'ACCEPTED' %}
+                                                            <button type="button" 
+                                                                    data-bid-id="{{ bid.id }}"
+                                                                    data-mill-name="{{ bid.millowner.millowner_profile.mill_name|default:bid.millowner.username|escapejs }}"
+                                                                    data-amount="{{ bid.amount }}"
+                                                                    onclick="openAcceptModal(this)"
+                                                                    class="btn-bid-action btn-bid-accept"
+                                                                    title="Accept this offer">
+                                                                <span>✓ Accept</span>
+                                                            </button>
+                                                        {% endif %}
+
+                                                        <button type="button" 
+                                                                data-bid-id="{{ bid.id }}"
+                                                                data-mill-name="{{ bid.millowner.millowner_profile.mill_name|default:bid.millowner.username|escapejs }}"
+                                                                data-amount="{{ bid.amount }}"
+                                                                data-rate="{{ bid.per_kg_rate|default:0 }}"
+                                                                data-counter-amount="{{ bid.counter_amount|default:0 }}"
+                                                                data-counter-rate="{{ bid.counter_per_kg_rate|default:0 }}"
+                                                                data-farmer-note="{{ bid.farmer_note|escapejs }}"
+                                                                data-yield-kg="{{ item.latest_harvest.yield_kg|default:0 }}"
+                                                                onclick="openBargainModal(this)"
+                                                                class="btn-bid-action btn-bid-bargain"
+                                                                title="Propose counter-offer &amp; send note">
+                                                            <span>💬 {% if bid.status == 'BARGAINING' %}Revise Bargain{% else %}Bargain{% endif %}</span>
+                                                        </button>
+
+
+                                                        {% if bid.status != 'REJECTED' %}
+                                                            <button type="button" 
+                                                                    data-bid-id="{{ bid.id }}"
+                                                                    data-mill-name="{{ bid.millowner.millowner_profile.mill_name|default:bid.millowner.username|escapejs }}"
+                                                                    data-amount="{{ bid.amount }}"
+                                                                    onclick="openRejectModal(this)"
+                                                                    class="btn-bid-action btn-bid-reject"
+                                                                    title="Decline this offer">
+                                                                <span>✕ Reject</span>
+                                                            </button>
+                                                        {% endif %}
+
+                                                        {% if bid.status != 'PENDING' %}
+                                                            <form method="post" action="{% url 'farmer_respond_bid' bid.id %}" style="display: inline;" onsubmit="return confirm('Reset this bid back to pending?');">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="action" value="reset">
+                                                                <button type="submit" class="btn-bid-action btn-bid-reset" title="Reset to pending">
+                                                                    ↺ Reset
+                                                                </button>
+                                                            </form>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div style="padding: 1.5rem; text-align: center; background: #fbfcfb; border-radius: var(--radius-sm); border: 1px dashed var(--color-border);">
+                                <p class="text-muted" style="margin: 0; font-size: 0.9rem;">
+                                    No mill owners have placed bids on this parcel yet. Bids will appear here sorted from highest offer to lowest.
+                                </p>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="padding: 3.5rem 2rem; text-align: center; background: #f8faf7; border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
+                <div style="font-size: 3rem; margin-bottom: 0.75rem;">🌾</div>
+                <h3 style="color: var(--color-primary-dark); margin-bottom: 0.5rem;">No Fields Registered</h3>
+                <p class="text-muted" style="max-width: 500px; margin: 0 auto 1.5rem auto;">
+                    Register your paddy field parcels and record harvest outputs so mill owners can view your produce and submit competitive bids.
+                </p>
+                <a href="{% url 'field_create' %}" class="btn-primary" style="display: inline-flex;">
+                    <span>➕ Register First Field</span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- ================= MODALS SECTION ================= -->
+
+<!-- 1. Accept Bid Modal -->
+<div id="acceptModal" class="paddynet-modal-overlay" style="display: none;">
+    <div class="paddynet-modal-card">
+        <div class="paddynet-modal-header" style="background: #f0fdf4; border-bottom: 1px solid #bbf7d0;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.35rem;">🎉</span>
+                <h3 style="margin: 0; color: #166534; font-size: 1.15rem;">Accept Purchase Bid</h3>
+            </div>
+            <button type="button" class="paddynet-modal-close" onclick="closeAcceptModal()">&times;</button>
+        </div>
+        <form id="acceptForm" method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="accept">
+            <div class="paddynet-modal-body">
+                <p style="margin-top: 0; font-size: 0.95rem; color: var(--color-text-main);">
+                    You are accepting the harvest purchase bid from <strong id="acceptMillName" style="color: var(--color-primary-dark);"></strong> for <strong id="acceptAmount" style="color: #047857; font-size: 1.1rem;"></strong>.
+                </p>
+                <div style="margin-top: 1rem;">
+                    <label for="acceptFarmerNote" style="display: block; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-primary-dark);">
+                        Note / Instructions to Mill Owner <span style="font-weight: 400; color: var(--color-text-muted);">(Optional)</span>
+                    </label>
+                    <textarea id="acceptFarmerNote" name="farmer_note" rows="3" class="form-control" style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border); padding: 0.65rem; font-size: 0.9rem;" placeholder="e.g. Accepted! Please arrange truck loading this Saturday. Moisture certificate is ready."></textarea>
+                </div>
+            </div>
+            <div class="paddynet-modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeAcceptModal()">Cancel</button>
+                <button type="submit" class="btn-primary" style="background: #15803d; border-color: #15803d;">
+                    ✓ Confirm Acceptance
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. Bargain & Counter-Offer Modal -->
+<div id="bargainModal" class="paddynet-modal-overlay" style="display: none;">
+    <div class="paddynet-modal-card">
+        <div class="paddynet-modal-header" style="background: #eff6ff; border-bottom: 1px solid #bfdbfe;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.35rem;">💬</span>
+                <h3 style="margin: 0; color: #1e40af; font-size: 1.15rem;">Bargain &amp; Propose Counter-Offer</h3>
+            </div>
+            <button type="button" class="paddynet-modal-close" onclick="closeBargainModal()">&times;</button>
+        </div>
+        <form id="bargainForm" method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bargain">
+            <div class="paddynet-modal-body">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem;">
+                    <div style="font-size: 0.85rem; color: var(--color-text-muted);">Mill Owner:</div>
+                    <div id="bargainMillName" style="font-weight: 700; color: var(--color-primary-dark); font-size: 1rem;"></div>
+                    <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.35rem;">Original Mill Offer:</div>
+                    <div id="bargainOriginalOffer" style="font-weight: 800; color: #047857; font-size: 1.1rem;"></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem;">
+                    <div>
+                        <label for="counterAmount" style="display: block; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-primary-dark);">
+                            Your Counter Amount (₹)
+                        </label>
+                        <input type="number" step="0.01" min="1" id="counterAmount" name="counter_amount" class="form-control"
+                               style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border); padding: 0.65rem; font-size: 0.95rem; font-weight: 700; color: #047857;"
+                               placeholder="e.g. 480000.00">
+                    </div>
+                    <div>
+                        <label for="counterRate" style="display: block; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-primary-dark);">
+                            Counter Rate (₹ / kg)
+                        </label>
+                        <input type="number" step="0.01" min="0.1" id="counterRate" name="counter_per_kg_rate" class="form-control"
+                               style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border); padding: 0.65rem; font-size: 0.95rem; font-weight: 700; color: #047857;"
+                               placeholder="e.g. 48.00"
+                               oninput="calcCounterTotal()">
+                    </div>
+                </div>
+
+                <!-- Live Auto-Calculator -->
+                <div id="bargainCalcPanel" style="display: none; background: linear-gradient(135deg, #eff6ff, #e0f2fe); border: 1px solid #93c5fd; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="font-size: 0.85rem; color: #1e40af;">
+                            ⚡ <strong>Auto Calc:</strong>
+                            <span id="calcYieldKg" style="font-weight: 700;"></span> kg
+                            &times;
+                            <span id="calcRateDisplay" style="font-weight: 700;"></span> ₹/kg
+                            &nbsp;=&nbsp;
+                            <span id="calcTotalDisplay" style="font-size: 1.05rem; font-weight: 800; color: #1d4ed8;"></span>
+                        </div>
+                        <button type="button" onclick="applyCalcToAmount()"
+                                style="background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 0.3rem 0.75rem; font-size: 0.8rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                            ✓ Use This Amount
+                        </button>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #3b82f6; margin-top: 0.25rem;">
+                        Based on <span id="calcYieldKg2"></span> kg latest harvest yield. Click "Use This Amount" to fill the counter amount field.
+                    </div>
+                </div>
+
+
+                <div>
+                    <label for="bargainFarmerNote" style="display: block; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-primary-dark);">
+                        Bargaining Message / Note to Mill Owner <span style="color: #dc2626;">*</span>
+                    </label>
+                    <textarea id="bargainFarmerNote" name="farmer_note" rows="3" required class="form-control" style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border); padding: 0.65rem; font-size: 0.9rem;" placeholder="e.g. Moisture is verified under 13% and grain quality is premium Jyothi. We can seal the deal at ₹48/kg with prompt payment."></textarea>
+                    <small style="color: var(--color-text-muted); font-size: 0.775rem; display: block; margin-top: 0.25rem;">
+                        💡 Clearly state your expectations regarding pricing, transport, or harvest grade so the mill owner can review and reply.
+                    </small>
+                </div>
+            </div>
+            <div class="paddynet-modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeBargainModal()">Cancel</button>
+                <button type="submit" class="btn-primary" style="background: #2563eb; border-color: #2563eb;">
+                    💬 Send Counter-Offer &amp; Note
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 3. Decline / Reject Bid Modal -->
+<div id="rejectModal" class="paddynet-modal-overlay" style="display: none;">
+    <div class="paddynet-modal-card">
+        <div class="paddynet-modal-header" style="background: #fef2f2; border-bottom: 1px solid #fecaca;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.35rem;">✕</span>
+                <h3 style="margin: 0; color: #991b1b; font-size: 1.15rem;">Decline Purchase Bid</h3>
+            </div>
+            <button type="button" class="paddynet-modal-close" onclick="closeRejectModal()">&times;</button>
+        </div>
+        <form id="rejectForm" method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reject">
+            <div class="paddynet-modal-body">
+                <p style="margin-top: 0; font-size: 0.95rem; color: var(--color-text-main);">
+                    Are you sure you want to decline the bid from <strong id="rejectMillName" style="color: var(--color-primary-dark);"></strong> (<span id="rejectAmount" style="font-weight: 700; color: #b91c1c;"></span>)?
+                </p>
+                <div style="margin-top: 1rem;">
+                    <label for="rejectFarmerNote" style="display: block; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-primary-dark);">
+                        Reason / Note to Mill Owner <span style="font-weight: 400; color: var(--color-text-muted);">(Optional)</span>
+                    </label>
+                    <textarea id="rejectFarmerNote" name="farmer_note" rows="3" class="form-control" style="width: 100%; border-radius: 8px; border: 1px solid var(--color-border); padding: 0.65rem; font-size: 0.9rem;" placeholder="e.g. Sorry, we have already accepted another offer / offer is below our cost."></textarea>
+                </div>
+            </div>
+            <div class="paddynet-modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button type="submit" class="btn-primary" style="background: #dc2626; border-color: #dc2626;">
+                    ✕ Confirm Decline
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Modal Overlay & Styling */
+.paddynet-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.paddynet-modal-card {
+    background: #ffffff;
+    border-radius: var(--radius-lg, 12px);
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    animation: scaleUp 0.18s ease-out;
+}
+
+.paddynet-modal-header {
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.paddynet-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
+.paddynet-modal-close:hover {
+    color: #000000;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.paddynet-modal-body {
+    padding: 1.25rem;
+}
+
+.paddynet-modal-footer {
+    padding: 0.85rem 1.25rem;
+    background: #f8fafc;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Action Buttons */
+.btn-bid-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    border: none;
+    line-height: 1.2;
+}
+
+.btn-bid-accept {
+    background: #15803d;
+    color: #ffffff;
+}
+.btn-bid-accept:hover {
+    background: #166534;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(21, 128, 61, 0.3);
+}
+
+.btn-bid-bargain {
+    background: #2563eb;
+    color: #ffffff;
+}
+.btn-bid-bargain:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.btn-bid-reject {
+    background: #ffffff;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+}
+.btn-bid-reject:hover {
+    background: #fef2f2;
+    border-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+.btn-bid-reset {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+.btn-bid-reset:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.96); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+</style>
+
+<script>
+// Base response URL pattern
+var respondUrlTemplate = "{% url 'farmer_respond_bid' 0 %}";
+
+function getRespondUrl(bidId) {
+    return respondUrlTemplate.replace('/0/', '/' + bidId + '/');
+}
+
+// Accept Modal Handlers
+function openAcceptModal(btn) {
+    var bidId = btn.dataset.bidId;
+    var millName = btn.dataset.millName;
+    var amount = btn.dataset.amount;
+    document.getElementById('acceptForm').action = getRespondUrl(bidId);
+    document.getElementById('acceptMillName').textContent = millName;
+    document.getElementById('acceptAmount').textContent = '₹' + amount;
+    document.getElementById('acceptFarmerNote').value = '';
+    document.getElementById('acceptModal').style.display = 'flex';
+}
+
+function closeAcceptModal() {
+    document.getElementById('acceptModal').style.display = 'none';
+}
+
+// Bargain Modal Handlers
+var _bargainYieldKg = 0;
+
+function openBargainModal(btn) {
+    var bidId = btn.dataset.bidId;
+    var millName = btn.dataset.millName;
+    var amount = btn.dataset.amount;
+    var rate = btn.dataset.rate;
+    var counterAmount = btn.dataset.counterAmount;
+    var counterRate = btn.dataset.counterRate;
+    var farmerNote = btn.dataset.farmerNote;
+    _bargainYieldKg = parseFloat(btn.dataset.yieldKg) || 0;
+
+    document.getElementById('bargainForm').action = getRespondUrl(bidId);
+    document.getElementById('bargainMillName').textContent = millName;
+    var offerText = '\u20b9' + amount;
+    if (rate && rate !== '0') {
+        offerText += ' (\u20b9' + rate + '/kg)';
+    }
+    document.getElementById('bargainOriginalOffer').textContent = offerText;
+    document.getElementById('counterAmount').value = (counterAmount && counterAmount !== '0') ? counterAmount : '';
+    document.getElementById('counterRate').value = (counterRate && counterRate !== '0') ? counterRate : '';
+    document.getElementById('bargainFarmerNote').value = farmerNote || '';
+
+    // Reset calc panel
+    document.getElementById('bargainCalcPanel').style.display = 'none';
+    if (_bargainYieldKg > 0) {
+        document.getElementById('calcYieldKg').textContent = _bargainYieldKg.toLocaleString('en-IN');
+        document.getElementById('calcYieldKg2').textContent = _bargainYieldKg.toLocaleString('en-IN');
+    }
+    // Trigger calc if rate already filled (edit scenario)
+    if (counterRate && counterRate !== '0') {
+        calcCounterTotal();
+    }
+
+    document.getElementById('bargainModal').style.display = 'flex';
+}
+
+function calcCounterTotal() {
+    var rateInput = document.getElementById('counterRate');
+    var rate = parseFloat(rateInput.value);
+    var panel = document.getElementById('bargainCalcPanel');
+    if (!rate || rate <= 0 || _bargainYieldKg <= 0) {
+        panel.style.display = 'none';
+        return;
+    }
+    var total = rate * _bargainYieldKg;
+    document.getElementById('calcRateDisplay').textContent = rate.toFixed(2);
+    document.getElementById('calcTotalDisplay').textContent = '\u20b9' + total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    panel.style.display = 'block';
+
+    // Also auto-fill counter amount (overwrite with new calc)
+    document.getElementById('counterAmount').value = total.toFixed(2);
+}
+
+function applyCalcToAmount() {
+    var rate = parseFloat(document.getElementById('counterRate').value);
+    if (rate && _bargainYieldKg > 0) {
+        document.getElementById('counterAmount').value = (rate * _bargainYieldKg).toFixed(2);
+    }
+}
+
+function closeBargainModal() {
+    document.getElementById('bargainModal').style.display = 'none';
+}
+
+// Reject Modal Handlers
+function openRejectModal(btn) {
+    var bidId = btn.dataset.bidId;
+    var millName = btn.dataset.millName;
+    var amount = btn.dataset.amount;
+    document.getElementById('rejectForm').action = getRespondUrl(bidId);
+    document.getElementById('rejectMillName').textContent = millName;
+    document.getElementById('rejectAmount').textContent = '₹' + amount;
+    document.getElementById('rejectFarmerNote').value = '';
+    document.getElementById('rejectModal').style.display = 'flex';
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+}
+
+
+// Close on clicking overlay background
+window.addEventListener('click', function(e) {
+    if (e.target.classList.contains('paddynet-modal-overlay')) {
+        e.target.style.display = 'none';
+    }
+});
+
+// Close on Escape key
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAcceptModal();
+        closeBargainModal();
+        closeRejectModal();
+    }
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Mill Owner Dashboard — PaddyNet Procurement Hub{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-welcome">
+                <span class="role-badge badge-mill">Mill Owner Hub</span>
+                <h1 class="dashboard-title">
+                    Welcome, {% if profile.mill_name %}{{ profile.mill_name }}{% else %}{{ user.username }}{% endif %}
+                </h1>
+                <p class="dashboard-subtitle">
+                    Discover available paddy harvest lots across Kainakary and submit direct competitive bids to local farmers.
+                </p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'millowner_field_browse' %}" class="btn-primary">
+                    <span>🌾 Browse Harvest Produce</span>
+                </a>
+                <a href="{% url 'millowner_bid_history' %}" class="btn-secondary">
+                    <span>📜 My Bid History ({{ total_bids_count }})</span>
+                </a>
+                <a href="{% url 'logout' %}" class="btn-secondary">Logout</a>
+            </div>
+        </div>
+
+        <!-- Quick Stat Metrics Row -->
+        <div class="field-stat-row">
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #e0f2fe; color: #0284c7;">📝</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Bids Placed</span>
+                    <span class="metric-val">{{ total_bids_count }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #ecfdf5; color: #059669;">💰</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Bidding Value</span>
+                    <span class="metric-val">₹{{ total_bid_value|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fef3c7; color: #d97706;">🌾</div>
+                <div class="metric-details">
+                    <span class="metric-label">Available Harvest Lots</span>
+                    <span class="metric-val">{{ available_harvest_count }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">Parcels</span></span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fdf2f8; color: #db2777;">⚖️</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Harvested Paddy</span>
+                    <span class="metric-val">{{ total_harvest_kg|floatformat:0 }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">kg</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Two-Column Grid -->
+        <div class="dashboard-grid" style="margin-top: 2rem;">
+            <!-- Mill Profile Card -->
+            <div class="dashboard-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="card-icon" style="margin: 0;">🏭</div>
+                        <h3 style="margin: 0;">Rice Mill Profile</h3>
+                    </div>
+                    {% if profile.is_verified %}
+                        <span class="status-badge status-verified">Verified Mill</span>
+                    {% else %}
+                        <span class="status-badge status-pending">Pending Verification</span>
+                    {% endif %}
+                </div>
+
+                {% if profile %}
+                    <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.925rem;">
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem; border-bottom: 1px dashed var(--color-border);">
+                            <span class="text-muted">Mill Enterprise:</span>
+                            <strong style="color: var(--color-primary-dark);">{{ profile.mill_name }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem; border-bottom: 1px dashed var(--color-border);">
+                            <span class="text-muted">FSSAI License:</span>
+                            <strong style="font-family: monospace; color: var(--color-primary-dark);">{{ profile.fssai_license_number|default:"—" }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem; border-bottom: 1px dashed var(--color-border);">
+                            <span class="text-muted">Operating Location:</span>
+                            <span>{{ profile.mill_location }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem; border-bottom: 1px dashed var(--color-border);">
+                            <span class="text-muted">Contact Phone:</span>
+                            <span>{{ profile.phone_number }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem;">
+                            <span class="text-muted">Registered Email:</span>
+                            <span>{{ user.email }}</span>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No profile details associated with this account.</p>
+                {% endif %}
+
+                <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                    <a href="{% url 'millowner_field_browse' %}" class="btn-primary" style="width: 100%; text-align: center; justify-content: center;">
+                        <span>🌾 Find Fields to Bid &rarr;</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Ready Harvest Produce Lots Card -->
+            <div class="dashboard-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="card-icon" style="margin: 0;">🚜</div>
+                        <h3 style="margin: 0;">Available Harvest Lots</h3>
+                    </div>
+                    <a href="{% url 'millowner_field_browse' %}" style="font-size: 0.85rem; font-weight: 700; color: var(--color-primary); text-decoration: underline;">
+                        View All ({{ available_harvest_count }}) &rarr;
+                    </a>
+                </div>
+
+                {% if featured_lots %}
+                    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                        {% for item in featured_lots %}
+                            <div style="background: #f8faf7; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center; transition: var(--transition);">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <strong style="color: var(--color-primary-dark); font-size: 0.95rem;">{{ item.field.field_name }}</strong>
+                                        <span class="status-badge badge-harvest" style="font-size: 0.7rem; padding: 0.1rem 0.4rem;">Harvested</span>
+                                    </div>
+                                    <div style="font-size: 0.825rem; color: var(--color-text-muted); margin-top: 0.2rem;">
+                                        Farmer: <strong>{{ item.field.owner.first_name|default:item.field.owner.username }}</strong> &bull; 📍 {{ item.field.location }} &bull; 🌾 {{ item.field.extent_area }} Acres
+                                    </div>
+                                    <div style="font-size: 0.8rem; margin-top: 0.25rem; color: #15803d; font-weight: 600;">
+                                        {% if item.latest_harvest %}
+                                            🌾 Yield: {{ item.latest_harvest.yield_kg|floatformat:0 }} kg ({{ item.latest_harvest.season_year }})
+                                        {% endif %}
+                                        {% if item.highest_bid %}
+                                            &bull; Highest Bid: ₹{{ item.highest_bid }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div>
+                                    <a href="{% url 'millowner_field_detail' item.field.id %}" class="btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.825rem; white-space: nowrap;">
+                                        Place Bid &rarr;
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="padding: 2rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm); border: 1px dashed var(--color-border);">
+                        <p class="text-muted" style="margin-bottom: 0;">No harvested paddy lots currently available for bidding.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Bids Placed by this Mill Owner -->
+        {% if recent_bids %}
+            <div style="margin-top: 2.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--color-primary-dark);">
+                        ⏱️ Your Recent Bids
+                    </h3>
+                    <a href="{% url 'millowner_bid_history' %}" style="font-size: 0.875rem; font-weight: 700; color: var(--color-primary); text-decoration: underline;">
+                        Complete Bid History &rarr;
+                    </a>
+                </div>
+
+                <div class="admin-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field / Lot</th>
+                                <th>Farmer</th>
+                                <th>Location</th>
+                                <th>Bid Amount</th>
+                                <th>Date Submitted</th>
+                                <th>Terms / Notes</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bid in recent_bids %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'millowner_field_detail' bid.field.id %}" style="font-weight: 700; color: var(--color-primary-dark); text-decoration: underline;">
+                                            🌾 {{ bid.field.field_name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span>{{ bid.field.owner.first_name|default:bid.field.owner.username }}</span>
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 0.875rem; color: var(--color-text-muted);">{{ bid.field.location }}</span>
+                                    </td>
+                                    <td>
+                                        <strong style="color: #047857; font-size: 1rem;">₹{{ bid.amount }}</strong>
+                                        {% if bid.per_kg_rate %}
+                                            <div style="font-size: 0.75rem; color: #166534; font-weight: 600;">
+                                                ₹{{ bid.per_kg_rate }}/kg
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 0.85rem; color: var(--color-text-muted);">{{ bid.date|date:"M d, Y, g:i a" }}</span>
+                                    </td>
+                                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        {{ bid.notes|default:"—" }}
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <a href="{% url 'millowner_field_detail' bid.field.id %}" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                                            View Field &rarr;
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

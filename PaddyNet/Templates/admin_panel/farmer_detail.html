@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ farmer.full_name|default:farmer.user.username }} — Farmer Profile & Fields — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+                    <span class="role-badge badge-farmer">Farmer Details</span>
+                    {% if farmer.farmer_id %}
+                        <span class="field-code-badge" style="font-size: 0.85rem;">{{ farmer.farmer_id }}</span>
+                    {% endif %}
+                    {% if farmer.is_verified %}
+                        <span class="status-badge status-verified">Verified</span>
+                    {% else %}
+                        <span class="status-badge status-pending">Pending Verification</span>
+                    {% endif %}
+                </div>
+                <h1 class="dashboard-title">{{ farmer.full_name|default:farmer.user.username }}</h1>
+                <p class="dashboard-subtitle">
+                    📍 {{ farmer.village }} &bull; Group: <strong>{{ farmer.farming_group }}</strong> &bull; Registered Account: <strong>@{{ farmer.user.username }}</strong>
+                </p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'admin_farmer_list' %}" class="btn-secondary">
+                    <span>&larr; Farmer Directory</span>
+                </a>
+                <a href="{% url 'admin_bills' %}" class="btn-secondary">
+                    <span>💳 View / Issue Bills</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="field-stat-row">
+            <div class="stat-metric-card">
+                <div class="metric-icon">🌱</div>
+                <div class="metric-details">
+                    <span class="metric-label">Fields Registered</span>
+                    <span class="metric-val">{{ total_fields }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon">📐</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Measured Acres</span>
+                    <span class="metric-val">{{ total_acres }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">Acres</span></span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon">🌾</div>
+                <div class="metric-details">
+                    <span class="metric-label">Cumulative Harvest</span>
+                    <span class="metric-val">{{ total_yield|floatformat:0 }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">kg</span></span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon">📋</div>
+                <div class="metric-details">
+                    <span class="metric-label">Declared Ownership</span>
+                    <span class="metric-val">{{ farmer.acres_owned }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">Acres</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Farmer Profile Information Card -->
+        <div class="dashboard-card" style="margin-bottom: 2rem;">
+            <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem;">
+                <span>👤</span> Profile Information
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
+                <div style="padding: 1rem; background: #f8faf7; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 700;">Full Name</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem;">
+                        {{ farmer.full_name|default:farmer.user.username }}
+                    </div>
+                </div>
+
+                <div style="padding: 1rem; background: #f8faf7; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 700;">Official Farmer ID</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem; font-family: monospace;">
+                        {{ farmer.farmer_id|default:"Pending Verification" }}
+                    </div>
+                </div>
+
+                <div style="padding: 1rem; background: #f8faf7; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 700;">Primary Phone Number</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem; font-family: monospace;">
+                        📞 {{ farmer.phone_number }}
+                    </div>
+                </div>
+
+                <div style="padding: 1rem; background: #f8faf7; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 700;">Email Address</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem;">
+                        ✉️ {{ farmer.user.email|default:"None specified" }}
+                    </div>
+                </div>
+
+                <div style="padding: 1rem; background: #f8faf7; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 700;">Village / Region</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem;">
+                        📍 {{ farmer.village }}
+                    </div>
+                </div>
+
+                <div style="padding: 1rem; background: #f8faf7; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 700;">Farming Group / Block</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--color-primary-dark); margin-top: 0.25rem;">
+                        🌾 {{ farmer.farming_group }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Read-Only List of Field Entries -->
+        <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    <span>🌾</span> Registered Field Entries (Read-Only)
+                </h3>
+                <span class="status-badge" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe;">
+                    {{ total_fields }} Registered Field{{ total_fields|pluralize }}
+                </span>
+            </div>
+            <p class="text-muted">Direct inspection of agricultural land parcels and seasonal performance managed by this farmer.</p>
+
+            {% if fields %}
+                <div class="admin-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Survey / Identifier</th>
+                                <th>Location</th>
+                                <th>Extent Area</th>
+                                <th>Recorded Activities</th>
+                                <th>Harvest Yield</th>
+                                <th>Registered On</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for field in fields %}
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--color-primary-dark); font-size: 1rem;">
+                                            {{ field.field_name }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if field.field_identifier %}
+                                            <span style="font-family: monospace; font-size: 0.85rem; font-weight: 700; background: var(--color-primary-soft); color: var(--color-primary-dark); padding: 0.2rem 0.5rem; border-radius: var(--radius-sm);">
+                                                {{ field.field_identifier }}
+                                            </span>
+                                        {% else %}
+                                            <span style="color: var(--color-text-muted); font-size: 0.85rem;">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span>📍 {{ field.location }}</span>
+                                    </td>
+                                    <td>
+                                        <strong style="color: var(--color-primary-dark);">{{ field.extent_area }}</strong> Acres
+                                    </td>
+                                    <td>
+                                        <span class="meta-pill">
+                                            📋 {{ field.activities.count }} log{{ field.activities.count|pluralize }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if field.total_harvest_yield > 0 %}
+                                            <strong style="color: var(--color-primary);">{{ field.total_harvest_yield|floatformat:0 }} kg</strong>
+                                        {% else %}
+                                            <span style="color: var(--color-text-muted); font-size: 0.85rem;">No harvest recorded</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span style="color: var(--color-text-muted); font-size: 0.85rem;">{{ field.created_at|date:"M d, Y" }}</span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="padding: 2.5rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm); border: 1px dashed var(--color-border); margin-top: 1rem;">
+                    <p style="color: var(--color-text-muted); font-weight: 500; font-size: 0.95rem;">
+                        This farmer has not created any field entries in the system yet.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

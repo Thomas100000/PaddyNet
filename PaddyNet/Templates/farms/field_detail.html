@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ field.field_name }} — Field Details & Timeline — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <!-- Header with Actions -->
+    <div class="dashboard-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+                <span class="role-badge badge-farmer">Paddy Field</span>
+                {% if field.field_identifier %}
+                    <span class="field-code-badge">{{ field.field_identifier }}</span>
+                {% endif %}
+            </div>
+            <h1 class="dashboard-title">{{ field.field_name }}</h1>
+            <p class="dashboard-subtitle">
+                📍 {{ field.location }} &bull; 🌾 <strong>{{ field.extent_area }}</strong> Acres &bull; Registered on {{ field.created_at|date:"M d, Y" }}
+            </p>
+        </div>
+        <div class="field-header-actions">
+            <a href="{% url 'field_list' %}" class="btn-secondary">
+                <span>&larr; All Fields</span>
+            </a>
+            <a href="{% url 'field_statistics_detail' field.id %}" class="btn-secondary">
+                <span>📊 Seasonal Stats</span>
+            </a>
+            <a href="{% url 'farmer_harvest_yield_pdf' %}"
+               class="btn-primary"
+               style="background: linear-gradient(135deg, #1b4332, #2d6a4f); display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1.1rem; font-size:0.9rem; text-decoration:none; border-radius:8px; color:#fff; font-weight:700; box-shadow:0 2px 8px rgba(27,67,50,0.18);"
+               title="Download Harvest Yield History PDF">
+                <span>📥</span> Download Yield Report
+            </a>
+            <a href="{% url 'field_edit' field.id %}" class="btn-secondary">
+                <span>✏️ Edit Field</span>
+            </a>
+            <a href="{% url 'field_delete' field.id %}" class="btn-reject" style="text-decoration: none; display: inline-flex; align-items: center;">
+                <span>🗑️ Delete</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stat Row -->
+    <div class="field-stat-row">
+        <div class="stat-metric-card">
+            <div class="metric-icon">📐</div>
+            <div class="metric-details">
+                <span class="metric-label">Parcel Size</span>
+                <span class="metric-val">{{ field.extent_area }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">Acres</span></span>
+            </div>
+        </div>
+
+        <div class="stat-metric-card">
+            <div class="metric-icon">📋</div>
+            <div class="metric-details">
+                <span class="metric-label">Logged Operations</span>
+                <span class="metric-val">{{ total_activities }}</span>
+            </div>
+        </div>
+
+        <div class="stat-metric-card">
+            <div class="metric-icon">🌾</div>
+            <div class="metric-details">
+                <span class="metric-label">Total Harvest Yield</span>
+                <span class="metric-val">{{ harvest_yield|floatformat:0 }} <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-muted);">kg</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two-column Layout: Timeline on Left, Add Form on Right -->
+    <div class="detail-layout-grid">
+        <!-- Left: Chronological Activity Timeline -->
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--color-primary-dark);">
+                    🗓️ Farming Activity Timeline
+                </h2>
+                <span style="font-size: 0.85rem; color: var(--color-text-muted); font-weight: 600;">
+                    Chronological Log ({{ activities|length }} entries)
+                </span>
+            </div>
+
+            {% if activities %}
+                <div class="timeline-container">
+                    {% for activity in activities %}
+                        <div class="timeline-node">
+                            <div class="timeline-bullet">
+                                {% if activity.activity_type == 'SOWING' %}🌱
+                                {% elif activity.activity_type == 'TRANSPLANTING' %}🌾
+                                {% elif activity.activity_type == 'FERTILIZER' %}🧪
+                                {% elif activity.activity_type == 'PESTICIDE' %}🛡️
+                                {% elif activity.activity_type == 'IRRIGATION' %}💧
+                                {% elif activity.activity_type == 'HARVEST' %}🚜
+                                {% else %}🌿{% endif %}
+                            </div>
+
+                            <div class="timeline-card">
+                                <div class="timeline-card-header">
+                                    <div class="timeline-date-season">
+                                        <span class="timeline-date">📅 {{ activity.activity_date|date:"M d, Y" }}</span>
+                                        <span class="timeline-season">{{ activity.season_year }}</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        {% if activity.activity_type == 'SOWING' %}
+                                            <span class="activity-badge badge-sowing">🌱 Sowing</span>
+                                        {% elif activity.activity_type == 'TRANSPLANTING' %}
+                                            <span class="activity-badge badge-transplanting">🌾 Transplanting</span>
+                                        {% elif activity.activity_type == 'FERTILIZER' %}
+                                            <span class="activity-badge badge-fertilizer">🧪 Fertilizer</span>
+                                        {% elif activity.activity_type == 'PESTICIDE' %}
+                                            <span class="activity-badge badge-pesticide">🛡️ Pesticide</span>
+                                        {% elif activity.activity_type == 'IRRIGATION' %}
+                                            <span class="activity-badge badge-irrigation">💧 Irrigation</span>
+                                        {% elif activity.activity_type == 'HARVEST' %}
+                                            <span class="activity-badge badge-harvest">🚜 Harvest</span>
+                                        {% else %}
+                                            <span class="activity-badge">{{ activity.get_activity_type_display }}</span>
+                                        {% endif %}
+
+                                        <form method="post" action="{% url 'activity_delete' activity.id %}" style="display: inline;" onsubmit="return confirm('Remove this activity log?');">
+                                            {% csrf_token %}
+                                            <button type="submit" style="background: none; border: none; cursor: pointer; opacity: 0.5; transition: opacity 0.2s;" title="Remove activity">
+                                                ❌
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                {% if activity.yield_kg %}
+                                    <div class="harvest-yield-highlight">
+                                        <div class="harvest-yield-label">
+                                            <span>🌾</span>
+                                            <span>Harvest Yield Recorded:</span>
+                                        </div>
+                                        <div class="harvest-yield-val">
+                                            {{ activity.yield_kg|floatformat:1 }} kg
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if activity.notes %}
+                                    <p class="timeline-notes">{{ activity.notes }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state-card" style="padding: 3rem 1.5rem;">
+                    <div class="empty-state-icon">🌱</div>
+                    <h3 class="empty-state-title" style="font-size: 1.25rem;">No Activities Recorded Yet</h3>
+                    <p class="empty-state-desc">
+                        Keep a structured digital ledger of all farming operations on this field — from seed bed preparation and sowing, to fertilization schedules and final harvest yields.
+                    </p>
+                    <p style="font-size: 0.9rem; font-weight: 700; color: var(--color-primary-dark);">
+                        &rarr; Use the form on the right to record the first activity!
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Inline "Add Activity" Form -->
+        <div>
+            <div class="dashboard-card" style="position: sticky; top: 90px;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.5rem;">📝</span>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--color-primary-dark);">
+                        Log Farming Activity
+                    </h3>
+                </div>
+                <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1.25rem;">
+                    Add an operation entry to <strong>{{ field.field_name }}</strong>'s chronological timeline.
+                </p>
+
+                <form method="post" class="auth-form" novalidate id="activity-form">
+                    {% csrf_token %}
+
+                    {% if activity_form.non_field_errors %}
+                        <div class="alert alert-error">
+                            {% for error in activity_form.non_field_errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label for="{{ activity_form.activity_type.id_for_label }}" class="form-label">
+                            Activity Type <span style="color: #d90429;">*</span>
+                        </label>
+                        {{ activity_form.activity_type }}
+                        {% if activity_form.activity_type.errors %}
+                            <span class="field-error">{{ activity_form.activity_type.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ activity_form.activity_date.id_for_label }}" class="form-label">
+                            Date Performed <span style="color: #d90429;">*</span>
+                        </label>
+                        {{ activity_form.activity_date }}
+                        {% if activity_form.activity_date.errors %}
+                            <span class="field-error">{{ activity_form.activity_date.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ activity_form.season_year.id_for_label }}" class="form-label">
+                            Season &amp; Year <span style="color: #d90429;">*</span>
+                        </label>
+                        {{ activity_form.season_year }}
+                        <datalist id="season_list">
+                            <option value="2025 Kharif">
+                            <option value="2025 Rabi">
+                            <option value="2024-25 Mundakan">
+                            <option value="2025 Punja">
+                            <option value="2025 Virippu">
+                            <option value="2026 Kharif">
+                        </datalist>
+                        {% if activity_form.season_year.errors %}
+                            <span class="field-error">{{ activity_form.season_year.errors.0 }}</span>
+                        {% endif %}
+                        <span class="field-hint">e.g. "2025 Kharif", "2025 Punja", "2024-25 Mundakan"</span>
+                    </div>
+
+                    <!-- Yield kg (Highlighted dynamically when Harvest is selected) -->
+                    <div class="form-group" id="yield-group">
+                        <label for="{{ activity_form.yield_kg.id_for_label }}" class="form-label" id="yield-label">
+                            Yield (kg) <span id="yield-hint-badge" style="font-size: 0.75rem; font-weight: normal; color: var(--color-text-muted);">(for Harvest)</span>
+                        </label>
+                        {{ activity_form.yield_kg }}
+                        {% if activity_form.yield_kg.errors %}
+                            <span class="field-error">{{ activity_form.yield_kg.errors.0 }}</span>
+                        {% endif %}
+                        <span class="field-hint">Total paddy harvested in kilograms</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ activity_form.notes.id_for_label }}" class="form-label">
+                            Notes &amp; Observations
+                        </label>
+                        {{ activity_form.notes }}
+                        {% if activity_form.notes.errors %}
+                            <span class="field-error">{{ activity_form.notes.errors.0 }}</span>
+                        {% endif %}
+                        <span class="field-hint">Seed variety, dosage (e.g. Urea 50kg), weather conditions, pest check</span>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-full" style="margin-top: 0.75rem;">
+                        <span>➕ Save Activity to Timeline</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const typeSelect  = document.getElementById('id_activity_type');
+        const dateInput   = document.getElementById('id_activity_date');
+        const yieldGroup  = document.getElementById('yield-group');
+        const yieldInput  = document.getElementById('id_yield_kg');
+        const yieldBadge  = document.getElementById('yield-hint-badge');
+        const yieldHint   = yieldGroup ? yieldGroup.querySelector('.field-hint') : null;
+
+        function isDatePastOrToday(dateStr) {
+            if (!dateStr) return false;
+            // Compare YYYY-MM-DD strings — today in local time
+            const today = new Date();
+            const yyyy  = today.getFullYear();
+            const mm    = String(today.getMonth() + 1).padStart(2, '0');
+            const dd    = String(today.getDate()).padStart(2, '0');
+            return dateStr <= `${yyyy}-${mm}-${dd}`;
+        }
+
+        function updateYieldVisibility() {
+            if (!typeSelect || !yieldGroup) return;
+            const isHarvest  = typeSelect.value === 'HARVEST';
+            const dateStr    = dateInput ? dateInput.value : '';
+            const isPast     = isDatePastOrToday(dateStr);
+
+            if (isHarvest) {
+                yieldGroup.style.backgroundColor = 'var(--color-primary-ghost)';
+                yieldGroup.style.padding          = '0.75rem';
+                yieldGroup.style.borderRadius     = 'var(--radius-sm)';
+
+                if (isPast || !dateStr) {
+                    // Past/today harvest — yield is required
+                    yieldGroup.style.border = '1.5px solid var(--color-primary-light)';
+                    if (yieldBadge) {
+                        yieldBadge.innerHTML = '<strong style="color: var(--color-primary-dark);">🌾 Required for Harvest</strong>';
+                    }
+                    if (yieldHint) yieldHint.textContent = 'Total paddy harvested in kilograms (required since harvest date has passed).';
+                    if (yieldInput) yieldInput.required = true;
+                } else {
+                    // Future harvest — yield is optional
+                    yieldGroup.style.border = '1.5px dashed var(--color-primary-light)';
+                    if (yieldBadge) {
+                        yieldBadge.innerHTML = '<span style="color: #6b8f6b; font-weight: 600;">📅 Optional — future harvest</span>';
+                    }
+                    if (yieldHint) yieldHint.textContent = 'You can leave this blank now and fill in the yield once the harvest is done.';
+                    if (yieldInput) yieldInput.required = false;
+                }
+            } else {
+                // Not harvest — hide the highlight
+                yieldGroup.style.backgroundColor = '';
+                yieldGroup.style.padding          = '';
+                yieldGroup.style.borderRadius     = '';
+                yieldGroup.style.border           = '';
+                if (yieldBadge) yieldBadge.textContent = '(for Harvest only)';
+                if (yieldHint)  yieldHint.textContent  = 'Total paddy harvested in kilograms';
+                if (yieldInput) yieldInput.required    = false;
+            }
+        }
+
+        if (typeSelect) typeSelect.addEventListener('change', updateYieldVisibility);
+        if (dateInput)  dateInput.addEventListener('change',  updateYieldVisibility);
+        updateYieldVisibility();
+    });
+</script>
+{% endblock %}

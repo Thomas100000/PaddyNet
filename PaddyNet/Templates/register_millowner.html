@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Mill Owner Registration — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-icon">🌾</div>
+            <h2 class="auth-title">Mill Owner Registration</h2>
+            <p class="auth-subtitle">Create your mill profile to start direct paddy bidding &amp; procurement</p>
+        </div>
+
+        <form method="post" action="{% url 'register_millowner' %}" class="auth-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="{{ form.fssai_license_number.id_for_label }}" class="form-label">FSSAI License Number <span style="color: #d90429;">*</span> <span style="color:#e07a5f;font-size:0.8rem;">(14 digits)</span></label>
+                    {{ form.fssai_license_number }}
+                    {% if form.fssai_license_number.errors %}
+                        <span class="field-error">{{ form.fssai_license_number.errors.0 }}</span>
+                    {% endif %}
+                    <span class="field-hint">Enter the 14-digit FSSAI License Number issued to your mill.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">Email Address <span style="color: #d90429;">*</span></label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <span class="field-error">{{ form.email.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.mill_name.id_for_label }}" class="form-label">Rice Mill Name <span style="color: #d90429;">*</span></label>
+                    {{ form.mill_name }}
+                    {% if form.mill_name.errors %}
+                        <span class="field-error">{{ form.mill_name.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.mill_location.id_for_label }}" class="form-label">Mill Location <span style="color: #d90429;">*</span></label>
+                    {{ form.mill_location }}
+                    {% if form.mill_location.errors %}
+                        <span class="field-error">{{ form.mill_location.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number <span style="color: #d90429;">*</span></label>
+                    {{ form.phone_number }}
+                    {% if form.phone_number.errors %}
+                        <span class="field-error">{{ form.phone_number.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.password.id_for_label }}" class="form-label">Password <span style="color: #d90429;">*</span></label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <span class="field-error">{{ form.password.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password <span style="color: #d90429;">*</span></label>
+                    {{ form.confirm_password }}
+                    {% if form.confirm_password.errors %}
+                        <span class="field-error">{{ form.confirm_password.errors.0 }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary btn-full">
+                Submit Registration
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{% url 'login' %}" class="auth-link">Sign In</a> | Registering as Farmer? <a href="{% url 'register_farmer' %}" class="auth-link">Click here</a></p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

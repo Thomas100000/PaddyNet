@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}404 — Page Not Found | PaddyNet{% endblock %}
+
+{% block content %}
+<section class="auth-section" style="min-height: calc(100vh - 280px);">
+    <div style="text-align: center; max-width: 560px; margin: 0 auto; padding: 2rem 1.5rem;">
+
+        <div style="font-size: 5rem; margin-bottom: 1rem; line-height: 1;">🌾</div>
+
+        <div style="
+            display: inline-block;
+            font-size: 6rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--color-primary-dark);
+            letter-spacing: -0.04em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary-medium));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        ">404</div>
+
+        <h1 style="
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--color-primary-dark);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.75rem;
+        ">Field Not Found</h1>
+
+        <p style="
+            color: var(--color-text-muted);
+            font-size: 1.05rem;
+            line-height: 1.65;
+            margin-bottom: 2.5rem;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+        ">
+            The page you're looking for doesn't seem to exist. It may have been moved,
+            deleted, or you might have followed a broken link.
+        </p>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{% url 'home' %}" class="btn-primary">
+                <span>🏡 Go to Home</span>
+            </a>
+            {% if user.is_authenticated %}
+                {% if user.role == 'FARMER' %}
+                    <a href="{% url 'farmer_dashboard' %}" class="btn-secondary">← Dashboard</a>
+                {% elif user.role == 'MILLOWNER' %}
+                    <a href="{% url 'millowner_dashboard' %}" class="btn-secondary">← Dashboard</a>
+                {% elif user.role == 'ADMIN' or user.is_superuser %}
+                    <a href="{% url 'admin_dashboard' %}" class="btn-secondary">← Dashboard</a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'login' %}" class="btn-secondary">Sign In</a>
+            {% endif %}
+        </div>
+
+        <div style="
+            margin-top: 3rem;
+            padding: 1.25rem 1.5rem;
+            background: var(--color-primary-ghost);
+            border: 1px solid var(--color-border-hover);
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+        ">
+            <strong style="color: var(--color-primary-dark);">Lost in the paddy fields?</strong>
+            If you believe this is a bug, please contact the PaddyNet administrator.
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block title %}My Bid History & Procurement Offers — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-welcome">
+                <span class="role-badge badge-mill">Procurement Records</span>
+                <h1 class="dashboard-title">My Harvest Bid History</h1>
+                <p class="dashboard-subtitle">
+                    Review all direct purchase offers submitted to local farmers across Kainakary polders.
+                </p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'millowner_dashboard' %}" class="btn-secondary">
+                    <span>&larr; Mill Dashboard</span>
+                </a>
+                <a href="{% url 'millowner_field_browse' %}" class="btn-primary">
+                    <span>🌾 Browse More Harvests</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="field-stat-row" style="margin-bottom: 2rem;">
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #e0f2fe; color: #0284c7;">📝</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Offers Submitted</span>
+                    <span class="metric-val">{{ total_bids }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #ecfdf5; color: #059669;">💰</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Committed Amount</span>
+                    <span class="metric-val">₹{{ total_amount|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bids Table -->
+        <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📜</span> Submitted Bids Registry
+                </h3>
+                <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+                    Sorted by newest first
+                </span>
+            </div>
+
+            {% if bids %}
+                <div class="admin-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Bid #</th>
+                                <th>Field / Lot</th>
+                                <th>Farmer Producer</th>
+                                <th>Location &amp; Extent</th>
+                                <th>Offer Amount (₹)</th>
+                                <th>Date &amp; Time</th>
+                                <th>Terms / Notes</th>
+                                <th>Decision Status &amp; Farmer Response</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bid in bids %}
+                                <tr>
+                                    <td>
+                                        <strong style="font-family: monospace; font-size: 0.9rem; color: var(--color-primary-dark);">
+                                            #{{ bid.id }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'millowner_field_detail' bid.field.id %}" style="font-weight: 700; color: var(--color-primary-dark); text-decoration: underline;">
+                                            🌾 {{ bid.field.field_name }}
+                                        </a>
+                                        {% if bid.field.field_identifier %}
+                                            <span style="display: block; font-family: monospace; font-size: 0.75rem; color: var(--color-text-muted);">
+                                                {{ bid.field.field_identifier }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong style="color: var(--color-text-main);">
+                                            {% if bid.field.owner.farmer_profile.full_name %}
+                                                {{ bid.field.owner.farmer_profile.full_name }}
+                                            {% else %}
+                                                {{ bid.field.owner.username }}
+                                            {% endif %}
+                                        </strong>
+                                        {% if bid.field.owner.farmer_profile.farmer_id %}
+                                            <span style="display: block; font-family: monospace; font-size: 0.75rem; color: var(--color-primary);">
+                                                {{ bid.field.owner.farmer_profile.farmer_id }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>📍 {{ bid.field.location }}</div>
+                                        <div style="font-size: 0.8rem; color: var(--color-text-muted);">
+                                            {{ bid.field.extent_area }} Acres
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong style="color: #047857; font-size: 1.05rem;">
+                                            ₹{{ bid.amount }}
+                                        </strong>
+                                        {% if bid.per_kg_rate %}
+                                            <div style="font-size: 0.775rem; color: #166534; font-weight: 600; margin-top: 0.15rem;">
+                                                ₹{{ bid.per_kg_rate }}/kg
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+                                            {{ bid.date|date:"M d, Y" }}
+                                            <small style="display: block; font-size: 0.75rem;">{{ bid.date|date:"g:i a" }}</small>
+                                        </span>
+                                    </td>
+                                    <td style="max-width: 200px; font-size: 0.85rem;">
+                                        {{ bid.notes|default:"—" }}
+                                    </td>
+                                    <td style="min-width: 180px;">
+                                        {% if bid.status == 'ACCEPTED' %}
+                                            <span class="status-badge" style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.75rem; font-weight: 700;">
+                                                ✓ Accepted by Farmer
+                                            </span>
+                                        {% elif bid.status == 'REJECTED' %}
+                                            <span class="status-badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-size: 0.75rem; font-weight: 700;">
+                                                ✕ Declined
+                                            </span>
+                                        {% elif bid.status == 'BARGAINING' %}
+                                            <span class="status-badge" style="background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; font-size: 0.75rem; font-weight: 700;">
+                                                💬 Counter-Offer Received
+                                            </span>
+                                            <div style="background: #f8fafc; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.75rem; margin-top: 0.35rem;">
+                                                {% if bid.counter_amount %}
+                                                    <div style="color: #1e40af; font-weight: 700;">
+                                                        Farmer Asks: ₹{{ bid.counter_amount }}
+                                                        {% if bid.counter_per_kg_rate %}<span style="color: #047857; font-weight: 600;"> (₹{{ bid.counter_per_kg_rate }}/kg)</span>{% endif %}
+                                                    </div>
+                                                {% elif bid.counter_per_kg_rate %}
+                                                    <div style="color: #047857; font-weight: 700;">Farmer Asks: ₹{{ bid.counter_per_kg_rate }}/kg</div>
+                                                {% endif %}
+                                                {% if bid.farmer_note %}
+                                                    <div style="color: #475569; margin-top: 0.2rem; font-style: italic;">
+                                                        “{{ bid.farmer_note }}”
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="status-badge status-pending" style="font-size: 0.75rem; font-weight: 700;">
+                                                ⏳ Awaiting Decision
+                                            </span>
+                                        {% endif %}
+
+                                        {% if bid.status != 'BARGAINING' and bid.farmer_note %}
+                                            <div style="font-size: 0.75rem; color: #475569; font-style: italic; margin-top: 0.25rem;">
+                                                Note: “{{ bid.farmer_note }}”
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: right;">
+                                        {% if bid.status == 'BARGAINING' %}
+                                            <a href="{% url 'millowner_field_detail' bid.field.id %}" class="btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: #2563eb; border-color: #2563eb; display: inline-block;">
+                                                Re-bid &rarr;
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'millowner_field_detail' bid.field.id %}" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                                                View Lot &rarr;
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="padding: 3rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm); border: 1px dashed var(--color-border);">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📝</div>
+                    <h4 style="color: var(--color-primary-dark); margin-bottom: 0.5rem;">No Bids Submitted Yet</h4>
+                    <p class="text-muted" style="margin-bottom: 1.25rem;">
+                        You haven't placed any harvest bids yet. Browse available harvested produce lots to submit direct offers.
+                    </p>
+                    <a href="{% url 'millowner_field_browse' %}" class="btn-primary" style="display: inline-flex;">
+                        <span>🌾 Browse Harvested Lots &rarr;</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

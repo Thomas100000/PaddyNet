@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard — PaddyNet Control{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-welcome">
+                <span class="role-badge badge-admin">Administrator Portal</span>
+                <h1 class="dashboard-title">System Overview & Operations</h1>
+                <p class="dashboard-subtitle">Real-time statistics, billing management, farmer directories, and community announcements.</p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'admin_farmer_list' %}" class="btn-secondary">
+                    <span>🌾 Farmer Directory</span>
+                </a>
+                <a href="{% url 'admin_bills' %}" class="btn-secondary">
+                    <span>💳 Manage Bills</span>
+                </a>
+                <a href="{% url 'post_notification' %}" class="btn-primary">
+                    <span>📢 Post Notice</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Metric Stat Cards Row -->
+        <div class="field-stat-row" style="margin-bottom: 2rem;">
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #e8f5e9; color: var(--color-primary);">🌾</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Farmers</span>
+                    <span class="metric-val">{{ total_farmers }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #e0f2fe; color: #0284c7;">🏭</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Mill Owners</span>
+                    <span class="metric-val">{{ total_millowners }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fff3bf; color: #b45309;">⏳</div>
+                <div class="metric-details">
+                    <span class="metric-label">Pending Bills</span>
+                    <span class="metric-val">{{ pending_bills_count }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fdf2f8; color: #be185d;">📝</div>
+                <div class="metric-details">
+                    <span class="metric-label">Pending Approvals</span>
+                    <span class="metric-val">{{ pending_farmers|length|add:pending_millowners|length }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid: Recent Notifications Widget + Quick Actions -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.75rem; margin-bottom: 2.5rem;" class="admin-top-grid">
+            <!-- Recent Notifications Widget -->
+            <div class="dashboard-card" style="margin-bottom: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.2rem;">
+                        <span>📢</span> Recent Community Notifications
+                    </h3>
+                    <a href="{% url 'post_notification' %}" style="font-size: 0.875rem; font-weight: 700; color: var(--color-primary); text-decoration: underline;">
+                        + Post New Notice
+                    </a>
+                </div>
+
+                {% if recent_notifications %}
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        {% for notice in recent_notifications %}
+                            <div style="padding: 1rem 1.25rem; background: #fbfcfb; border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary); border-radius: var(--radius-sm); transition: var(--transition);">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.35rem;">
+                                    <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--color-primary-dark);">{{ notice.title }}</h4>
+                                    <span style="font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; font-weight: 600;">
+                                        🕒 {{ notice.created_at|timesince }} ago
+                                    </span>
+                                </div>
+                                <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--color-text-main); line-height: 1.5; white-space: pre-line;">{{ notice.message|truncatewords:40 }}</p>
+                                <div style="font-size: 0.78rem; color: var(--color-text-muted); font-weight: 600;">
+                                    Posted by <strong>{{ notice.posted_by.username }}</strong> &bull; {{ notice.created_at|date:"M d, Y h:i A" }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="padding: 2.5rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm); border: 1px dashed var(--color-border);">
+                        <p style="color: var(--color-text-muted); margin-bottom: 1rem; font-size: 0.95rem;">No notifications posted yet.</p>
+                        <a href="{% url 'post_notification' %}" class="btn-primary" style="display: inline-block;">Post First Notice</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Admin Quick Links & Summary -->
+            <div class="dashboard-card" style="margin-bottom: 0;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-size: 1.15rem;">
+                    <span>🛡️</span> Quick Actions
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <a href="{% url 'admin_farmer_list' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1rem; background: #f8faf7; border: 1px solid var(--color-border); border-radius: var(--radius-sm); text-decoration: none; color: var(--color-text-main); font-weight: 600; transition: var(--transition);">
+                        <span>🌾 View All Registered Farmers</span>
+                        <span style="color: var(--color-primary); font-weight: 800;">&rarr;</span>
+                    </a>
+                    <a href="{% url 'admin_bills' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1rem; background: #f8faf7; border: 1px solid var(--color-border); border-radius: var(--radius-sm); text-decoration: none; color: var(--color-text-main); font-weight: 600; transition: var(--transition);">
+                        <span>💳 Issue & Manage Bills</span>
+                        <span style="color: var(--color-primary); font-weight: 800;">&rarr;</span>
+                    </a>
+                    <a href="{% url 'post_notification' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1rem; background: #f8faf7; border: 1px solid var(--color-border); border-radius: var(--radius-sm); text-decoration: none; color: var(--color-text-main); font-weight: 600; transition: var(--transition);">
+                        <span>📢 Broadcast Notice</span>
+                        <span style="color: var(--color-primary); font-weight: 800;">&rarr;</span>
+                    </a>
+                </div>
+
+                <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--color-border);">
+                    <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">
+                        <strong>Administrator:</strong> {{ user.username }}
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--color-text-muted);">
+                        <strong>Email:</strong> {{ user.email|default:"N/A" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Farmer Approvals Section -->
+        <div class="dashboard-card" style="margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🌱</span> Pending Farmer Approvals
+                    {% if pending_farmers %}
+                        <span class="status-badge status-pending">{{ pending_farmers|length }} Pending</span>
+                    {% endif %}
+                </h3>
+            </div>
+            <p class="text-muted">Review and verify newly registered farmers so they can log in to the portal.</p>
+
+            {% if pending_farmers %}
+                <div class="admin-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Phone Number</th>
+                                <th>Village</th>
+                                <th>Farming Group</th>
+                                <th>Acres Owned</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for farmer in pending_farmers %}
+                                <tr>
+                                    <td><strong>{{ farmer.full_name|default:farmer.user.first_name|default:farmer.user.username }}</strong></td>
+                                    <td>{{ farmer.user.email }}</td>
+                                    <td>{{ farmer.phone_number }}</td>
+                                    <td>{{ farmer.village }}</td>
+                                    <td>{{ farmer.farming_group }}</td>
+                                    <td>{{ farmer.acres_owned }} Acres</td>
+                                    <td><span class="status-badge status-pending">Pending</span></td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <form method="post" action="{% url 'verify_farmer' farmer.id %}" style="margin: 0;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-verify">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                    Verify
+                                                </button>
+                                            </form>
+                                            <form method="post" action="{% url 'reject_farmer' farmer.id %}" style="margin: 0;" onsubmit="return confirm('Are you sure you want to reject this farmer registration?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-reject">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                    Reject
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="padding: 1.5rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm); margin-top: 1rem;">
+                    <p style="color: var(--color-text-muted); font-weight: 500;">No pending farmer verification requests.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Pending Mill Owner Approvals Section -->
+        <div class="dashboard-card" style="margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🏭</span> Pending Mill Owner Approvals
+                    {% if pending_millowners %}
+                        <span class="status-badge status-pending">{{ pending_millowners|length }} Pending</span>
+                    {% endif %}
+                </h3>
+            </div>
+            <p class="text-muted">Review and verify newly registered mill owners so they can log in to the portal.</p>
+
+            {% if pending_millowners %}
+                <div class="admin-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Mill Name</th>
+                                <th>FSSAI License No.</th>
+                                <th>Email</th>
+                                <th>Phone Number</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mill in pending_millowners %}
+                                <tr>
+                                    <td><strong>{{ mill.mill_name }}</strong></td>
+                                    <td><span style="font-family: monospace; font-size: 0.9rem;">{{ mill.fssai_license_number|default:"-" }}</span></td>
+                                    <td>{{ mill.user.email }}</td>
+                                    <td>{{ mill.phone_number }}</td>
+                                    <td>{{ mill.mill_location }}</td>
+                                    <td><span class="status-badge status-pending">Pending</span></td>
+                                    <td>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <form method="post" action="{% url 'verify_millowner' mill.id %}" style="margin: 0;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-verify">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                    Verify
+                                                </button>
+                                            </form>
+                                            <form method="post" action="{% url 'reject_millowner' mill.id %}" style="margin: 0;" onsubmit="return confirm('Are you sure you want to reject this mill owner registration?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-reject">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                    Reject
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="padding: 1.5rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm); margin-top: 1rem;">
+                    <p style="color: var(--color-text-muted); font-weight: 500;">No pending mill owner verification requests.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PaddyNet — Paddy Farming Community Portal{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core/style.css' %}">
+</head>
+<body>
+    <!-- Navbar -->
+    <header class="site-header">
+        <div class="navbar-container">
+            <a href="{% url 'home' %}" class="navbar-brand">
+                <div class="brand-icon">🌾</div>
+                <span>Paddy<span class="brand-accent">Net</span></span>
+            </a>
+            <!-- Hamburger button (mobile only) -->
+            <button class="nav-hamburger" id="nav-hamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="main-nav">
+                <span></span><span></span><span></span>
+            </button>
+            <nav id="main-nav">
+                <ul class="nav-menu" id="nav-menu">
+                    {% if user.is_authenticated %}
+                        {% if user.role == 'ADMIN' or user.is_superuser %}
+                            <li><a href="{% url 'admin_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">Dashboard</a></li>
+                            <li><a href="{% url 'admin_farmer_list' %}" class="nav-link {% if 'farmer' in request.resolver_match.url_name %}active{% endif %}">Farmers</a></li>
+                            <li><a href="{% url 'admin_bills' %}" class="nav-link {% if 'bill' in request.resolver_match.url_name %}active{% endif %}">Bills</a></li>
+                            <li><a href="{% url 'post_notification' %}" class="nav-link {% if 'notification' in request.resolver_match.url_name %}active{% endif %}">Post Notice</a></li>
+                        {% elif user.role == 'MILLOWNER' %}
+                            <li><a href="{% url 'millowner_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'millowner_dashboard' %}active{% endif %}">Dashboard</a></li>
+                            <li><a href="{% url 'millowner_field_browse' %}" class="nav-link {% if 'field' in request.resolver_match.url_name %}active{% endif %}">Available Harvests</a></li>
+                            <li><a href="{% url 'millowner_bid_history' %}" class="nav-link {% if 'bid' in request.resolver_match.url_name %}active{% endif %}">My Bids</a></li>
+                        {% elif user.role == 'FARMER' %}
+                            <li><a href="{% url 'farmer_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'farmer_dashboard' %}active{% endif %}">Dashboard</a></li>
+                            <li><a href="{% url 'field_list' %}" class="nav-link {% if 'field' in request.resolver_match.url_name and 'statistic' not in request.resolver_match.url_name %}active{% endif %}">My Fields</a></li>
+                            <li><a href="{% url 'farmer_bids' %}" class="nav-link {% if 'bid' in request.resolver_match.url_name %}active{% endif %}">Mill Bids</a></li>
+                            <li><a href="{% url 'field_statistics' %}" class="nav-link {% if 'statistic' in request.resolver_match.url_name %}active{% endif %}">Yield Stats</a></li>
+                            <li><a href="{% url 'farmer_bills' %}" class="nav-link {% if 'bill' in request.resolver_match.url_name %}active{% endif %}">My Bills</a></li>
+                            <li><a href="{% url 'farmer_notifications' %}" class="nav-link {% if 'notification' in request.resolver_match.url_name %}active{% endif %}">Notices</a></li>
+                        {% endif %}
+                        <li><a href="{% url 'logout' %}" class="nav-link btn-nav-outline">Logout</a></li>
+                    {% else %}
+                        <li><a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a></li>
+                        <li><a href="{% url 'login' %}" class="nav-link btn-nav-outline">Login</a></li>
+                        <li><a href="{% url 'register' %}" class="nav-link btn-nav-solid">Register</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <script>
+        // Simple hamburger toggle
+        (function(){
+            var btn = document.getElementById('nav-hamburger');
+            var menu = document.getElementById('nav-menu');
+            if (btn && menu) {
+                btn.addEventListener('click', function(){
+                    var open = menu.classList.toggle('nav-open');
+                    btn.classList.toggle('is-open', open);
+                    btn.setAttribute('aria-expanded', open);
+                });
+                // Close on link click (mobile)
+                menu.querySelectorAll('a').forEach(function(a){
+                    a.addEventListener('click', function(){
+                        menu.classList.remove('nav-open');
+                        btn.classList.remove('is-open');
+                        btn.setAttribute('aria-expanded', 'false');
+                    });
+                });
+            }
+        })();
+    </script>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <span>🌾 PaddyNet</span>
+                </div>
+                <p class="footer-tagline">Empowering paddy farming communities through digital field management, accounts transparency, and direct mill bidding.</p>
+            </div>
+            <div>
+                <h4 class="footer-heading">Platform</h4>
+                <ul class="footer-links">
+                    <li><a href="{% url 'home' %}">Home</a></li>
+                    <li><a href="{% url 'login' %}">Farmer Portal</a></li>
+                    <li><a href="{% url 'login' %}">Mill Owner Hub</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="footer-heading">Community</h4>
+                <ul class="footer-links">
+                    <li><a href="{% url 'home' %}">Notices & Bids</a></li>
+                    <li><a href="{% url 'register' %}">Join PaddyNet</a></li>
+                    <li><a href="{% url 'home' %}">Support</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="footer-heading">Account</h4>
+                <ul class="footer-links">
+                    <li><a href="{% url 'login' %}">Login</a></li>
+                    <li><a href="{% url 'register' %}">Create Account</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; {% now "Y" %} PaddyNet Portal. All rights reserved.</p>
+            <p>Cultivating a smarter agricultural future 🌾</p>
+        </div>
+    </footer>
+</body>
+</html>

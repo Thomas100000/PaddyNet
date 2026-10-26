@@ -1,0 +1,674 @@
+{% extends 'base.html' %}
+
+{% block title %}Bill Management & Invoicing — PaddyNet Admin{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <span class="role-badge badge-admin">Billing System</span>
+                <h1 class="dashboard-title">Community Bill Management</h1>
+                <p class="dashboard-subtitle">Issue dues, upload voucher documents (PDF/JPG), track category breakdowns, and resolve dispute requests.</p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'admin_dashboard' %}" class="btn-secondary">
+                    <span>&larr; Admin Dashboard</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="field-stat-row" style="margin-bottom: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem;">
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #e0f2fe; color: #0284c7;">💳</div>
+                <div class="metric-details">
+                    <span class="metric-label">Total Bills Issued</span>
+                    <span class="metric-val">{{ total_count }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fff3bf; color: #b45309;">⏳</div>
+                <div class="metric-details">
+                    <span class="metric-label">Pending Payments</span>
+                    <span class="metric-val">{{ pending_count }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #d8f3dc; color: #1b4332;">✅</div>
+                <div class="metric-details">
+                    <span class="metric-label">Settled / Paid Bills</span>
+                    <span class="metric-val">{{ paid_count }}</span>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="metric-icon" style="background: #fee2e2; color: #b91c1c;">⚠️</div>
+                <div class="metric-details">
+                    <span class="metric-label">Disputed Bills</span>
+                    <span class="metric-val" style="color: #b91c1c;">{{ disputed_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Layout: Add Bill Form + Bills Table -->
+        <div style="display: grid; grid-template-columns: 360px 1fr; gap: 2rem; align-items: start;" class="admin-bills-layout">
+            <!-- Add Bill Form Card -->
+            <div class="dashboard-card" style="margin-bottom: 0;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span>➕</span> Issue New Bill
+                </h3>
+                <p class="text-muted" style="font-size: 0.875rem; margin-bottom: 1.25rem;">
+                    Issue an invoice with standard community dues and optional document receipt.
+                </p>
+
+                <form method="post" action="{% url 'admin_bills' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-error" style="margin-bottom: 1rem; font-size: 0.85rem;">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <!-- Farmer select -->
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label for="{{ form.farmer.id_for_label }}" style="display: block; font-weight: 700; font-size: 0.875rem; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                            Select Farmer *
+                        </label>
+                        {{ form.farmer }}
+                        {% if form.farmer.errors %}
+                            <div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.3rem;">
+                                {{ form.farmer.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Category Dropdown (Replacing description) -->
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label for="{{ form.description.id_for_label }}" style="display: block; font-weight: 700; font-size: 0.875rem; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                            Bill Category / Type *
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.3rem;">
+                                {{ form.description.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label for="{{ form.amount.id_for_label }}" style="display: block; font-weight: 700; font-size: 0.875rem; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                            Amount (₹) *
+                        </label>
+                        {{ form.amount }}
+                        {% if form.amount.errors %}
+                            <div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.3rem;">
+                                {{ form.amount.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Bill Document File Upload (PDF / JPG) -->
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label for="{{ form.bill_file.id_for_label }}" style="display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 0.875rem; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                            <span>📎 Upload Bill Document</span>
+                            <span style="font-size: 0.75rem; font-weight: normal; color: var(--color-text-muted);">PDF or JPG</span>
+                        </label>
+                        
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <div style="flex: 1; min-width: 0;">
+                                {{ form.bill_file }}
+                            </div>
+                            <button type="button" id="btnViewSelectedFile" class="btn-side-view" onclick="viewSelectedUploadDocument()" title="Click to view the selected PDF or JPG file">
+                                <span>👁️ View File</span>
+                            </button>
+                        </div>
+
+                        <div id="selectedFileStatusNotice" style="display: none; font-size: 0.78rem; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); margin-top: 0.4rem;">
+                        </div>
+
+                        <div style="font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.3rem;">
+                            Upload digital receipt, fuel voucher, or meter bill (PDF, JPG, PNG up to 10MB).
+                        </div>
+                        {% if form.bill_file.errors %}
+                            <div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.3rem;">
+                                {{ form.bill_file.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Optional Remarks / Notes -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="{{ form.notes.id_for_label }}" style="display: block; font-weight: 700; font-size: 0.875rem; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                            Additional Remarks (Optional)
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div style="color: #dc2626; font-size: 0.8rem; margin-top: 0.3rem;">
+                                {{ form.notes.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">
+                        <span>Issue Bill &rarr;</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Bills Registry List -->
+            <div class="dashboard-card" style="margin-bottom: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                            <span>📑</span> Bills Registry
+                        </h3>
+                        <p class="text-muted" style="margin: 0; font-size: 0.875rem;">
+                            Filter, review documents, and manage settlement & dispute status.
+                        </p>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div style="display: flex; gap: 0.3rem; background: #f1f5f2; padding: 0.3rem; border-radius: var(--radius-sm); flex-wrap: wrap;">
+                        <a 
+                            href="{% url 'admin_bills' %}" 
+                            class="filter-pill {% if not status_filter %}filter-active-all{% endif %}"
+                        >
+                            All ({{ total_count }})
+                        </a>
+                        <a 
+                            href="{% url 'admin_bills' %}?status=PENDING" 
+                            class="filter-pill {% if status_filter == 'PENDING' %}filter-active-pending{% endif %}"
+                        >
+                            Pending ({{ pending_count }})
+                        </a>
+                        <a 
+                            href="{% url 'admin_bills' %}?status=PAID" 
+                            class="filter-pill {% if status_filter == 'PAID' %}filter-active-paid{% endif %}"
+                        >
+                            Paid ({{ paid_count }})
+                        </a>
+                        <a 
+                            href="{% url 'admin_bills' %}?status=DISPUTED" 
+                            class="filter-pill {% if status_filter == 'DISPUTED' %}filter-active-disputed{% endif %}"
+                        >
+                            Disputed ({{ disputed_count }})
+                        </a>
+                    </div>
+                </div>
+
+                {% if bills %}
+                    <div class="admin-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Bill #</th>
+                                    <th>Farmer</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Document</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th style="text-align: right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bill in bills %}
+                                    <tr>
+                                        <td>
+                                            <strong style="font-family: monospace; color: var(--color-primary-dark);">#{{ bill.id }}</strong>
+                                        </td>
+                                        <td>
+                                            <div style="font-weight: 700; color: var(--color-primary-dark);">
+                                                {% if bill.farmer.farmer_profile %}
+                                                    {{ bill.farmer.farmer_profile.full_name|default:bill.farmer.username }}
+                                                {% else %}
+                                                    {{ bill.farmer.username }}
+                                                {% endif %}
+                                            </div>
+                                            <div style="font-size: 0.78rem; color: var(--color-text-muted);">
+                                                @{{ bill.farmer.username }}
+                                                {% if bill.farmer.farmer_profile.village %}
+                                                    &bull; 📍 {{ bill.farmer.farmer_profile.village }}
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="font-weight: 600; color: var(--color-primary-dark);">
+                                                {{ bill.description }}
+                                            </div>
+                                            {% if bill.notes %}
+                                                <div style="font-size: 0.78rem; color: var(--color-text-muted); font-style: italic;">
+                                                    {{ bill.notes|truncatechars:40 }}
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong style="font-size: 1.05rem; color: var(--color-primary-dark);">₹{{ bill.amount }}</strong>
+                                            {% if bill.status == 'PAID' and bill.payment_method %}
+                                                <div style="font-size: 0.72rem; color: #166534; font-family: monospace;">
+                                                    via {{ bill.payment_method }}
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if bill.bill_file %}
+                                                <a href="{{ bill.bill_file.url }}" target="_blank" rel="noopener noreferrer" class="btn-doc-pill" title="View uploaded bill: {{ bill.file_name }}">
+                                                    {% if bill.is_pdf %}
+                                                        <span style="color: #dc2626;">📄</span> PDF
+                                                    {% else %}
+                                                        <span style="color: #2563eb;">🖼️</span> JPG
+                                                    {% endif %}
+                                                </a>
+                                            {% else %}
+                                                <span style="color: #9ca3af; font-size: 0.8rem; font-style: italic;">No file</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span style="font-size: 0.85rem; color: var(--color-text-muted);">{{ bill.date_issued|date:"M d, Y" }}</span>
+                                        </td>
+                                        <td>
+                                            {% if bill.status == 'PAID' %}
+                                                <span class="status-badge status-verified">Paid</span>
+                                            {% elif bill.status == 'DISPUTED' %}
+                                                <span class="status-badge status-disputed" title="Disputed by farmer">⚠️ Disputed</span>
+                                            {% else %}
+                                                <span class="status-badge status-pending">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="text-align: right; white-space: nowrap;">
+                                            {% if bill.status == 'DISPUTED' %}
+                                                <button type="button" class="btn-review-dispute"
+                                                    data-bill-id="{{ bill.id }}"
+                                                    data-farmer="{{ bill.farmer.farmer_profile.full_name|default:bill.farmer.username }}"
+                                                    data-category="{{ bill.description }}"
+                                                    data-amount="{{ bill.amount }}"
+                                                    data-reason="{{ bill.dispute_reason }}"
+                                                    data-date="{{ bill.disputed_at|date:'M d, Y H:i' }}"
+                                                    onclick="handleAdminDisputeClick(this)">
+                                                    Review Dispute
+                                                </button>
+                                                <form method="post" action="{% url 'toggle_bill_status' bill.id %}" style="margin: 0; display: inline-block;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-verify" title="Resolve dispute and mark as PAID" style="font-size: 0.8rem; padding: 0.35rem 0.65rem;">
+                                                        Mark Paid
+                                                    </button>
+                                                </form>
+                                            {% elif bill.status == 'PENDING' %}
+                                                <form method="post" action="{% url 'toggle_bill_status' bill.id %}" style="margin: 0; display: inline-block;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-verify" title="Mark this bill as PAID" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                        Mark as PAID
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <form method="post" action="{% url 'toggle_bill_status' bill.id %}" style="margin: 0; display: inline-block;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-secondary" title="Mark this bill as PENDING" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; background: #fff3bf; color: #856404; border-color: #ffe066;">
+                                                        <span>↩ Mark Pending</span>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div style="padding: 2.5rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm); border: 1px dashed var(--color-border);">
+                        <p style="color: var(--color-text-muted); font-weight: 500;">
+                            No bills found matching the selected filter.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Admin Dispute Review Modal -->
+<div id="adminDisputeModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #b91c1c;">
+                <span>⚠️</span> Farmer Bill Dispute Notice
+            </h3>
+            <button type="button" class="modal-close" onclick="closeDisputeModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 1.5rem;">
+            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.85rem; color: #7f1d1d; font-weight: 700;" id="modalDisputeBillId">Bill #--</span>
+                    <span style="font-size: 0.8rem; color: #991b1b;" id="modalDisputeDate">--</span>
+                </div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #991b1b; margin-bottom: 0.25rem;" id="modalDisputeFarmer">Farmer: --</div>
+                <div style="font-size: 0.9rem; color: #7f1d1d;" id="modalDisputeCategory">Category: -- | ₹--</div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 700; font-size: 0.85rem; color: var(--color-primary-dark); margin-bottom: 0.4rem;">
+                    Farmer's Stated Reason / Objection:
+                </label>
+                <div id="modalDisputeReason" style="background: #f8faf7; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 1rem; font-size: 0.925rem; color: var(--color-text-main); line-height: 1.5; white-space: pre-wrap;">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn-secondary" onclick="closeDisputeModal()">Close</button>
+                <form id="modalResolveForm" method="post" action="" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-verify" style="padding: 0.65rem 1rem;">
+                        Resolve & Mark as PAID &rarr;
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal (for previewing chosen bill file before or after submission) -->
+<div id="uploadFilePreviewModal" class="modal-backdrop" style="display: none; z-index: 10050;">
+    <div class="modal-card" style="max-width: 760px; width: 92%;">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.25rem;">📄</span>
+                <h3 style="margin: 0; font-size: 1.05rem; color: var(--color-primary-dark);" id="uploadPreviewTitle">Document Preview</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="closeUploadPreviewModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 1.25rem; text-align: center;">
+            <div style="margin-bottom: 0.75rem; font-size: 0.85rem; font-weight: 600; color: var(--color-primary-dark); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 0.5rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                <span id="previewDocNotice">Selected Document</span>
+                <a id="previewOpenTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="font-size: 0.78rem; padding: 0.3rem 0.65rem;">
+                    Open in New Window ↗
+                </a>
+            </div>
+            <div id="previewPdfContainer" style="display: none; height: 500px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; background: #334155;">
+                <iframe id="previewDocFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+            <div id="previewDocImgWrapper" style="display: none; max-height: 500px; overflow: auto; text-align: center; background: #f8fafc; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm);">
+                <img id="previewDocImage" src="" alt="Bill Preview" style="max-width: 100%; max-height: 480px; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.25rem; border-top: 1px solid var(--color-border); background: #f8fafc;">
+            <button type="button" class="btn-primary" style="padding: 0.5rem 1.25rem;" onclick="closeUploadPreviewModal()">Close Preview</button>
+        </div>
+    </div>
+</div>
+
+<script>
+var selectedUploadFileDataUrl = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    var fileInput = document.getElementById('id_bill_file');
+    var btnView = document.getElementById('btnViewSelectedFile');
+    var statusNotice = document.getElementById('selectedFileStatusNotice');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files && fileInput.files[0]) {
+                var file = fileInput.files[0];
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedUploadFileDataUrl = e.target.result;
+                    if (btnView) {
+                        btnView.classList.add('btn-view-ready');
+                    }
+                    if (statusNotice) {
+                        var ext = file.name.split('.').pop().toUpperCase();
+                        var sizeKb = (file.size / 1024).toFixed(1);
+                        statusNotice.style.display = 'block';
+                        statusNotice.innerHTML = '✓ Selected: <strong>' + file.name + '</strong> (' + ext + ', ' + sizeKb + ' KB) &bull; <a href="javascript:void(0)" onclick="viewSelectedUploadDocument()" style="color: #166534; font-weight: 700; text-decoration: underline;">Click to preview file</a>';
+                    }
+                };
+                reader.readAsDataURL(file);
+            } else {
+                selectedUploadFileDataUrl = null;
+                if (btnView) {
+                    btnView.classList.remove('btn-view-ready');
+                }
+                if (statusNotice) {
+                    statusNotice.style.display = 'none';
+                }
+            }
+        });
+    }
+});
+
+function viewSelectedUploadDocument() {
+    var fileInput = document.getElementById('id_bill_file');
+    if (!fileInput) {
+        fileInput = document.querySelector('input[type="file"][name="bill_file"]');
+    }
+    
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        alert("Please choose a PDF or JPG bill file first by clicking 'Choose File'.");
+        return;
+    }
+    
+    var file = fileInput.files[0];
+    var isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    
+    document.getElementById('uploadPreviewTitle').innerText = 'Document: ' + file.name;
+    document.getElementById('previewDocNotice').innerText = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+    
+    var pdfContainer = document.getElementById('previewPdfContainer');
+    var frame = document.getElementById('previewDocFrame');
+    var imgWrapper = document.getElementById('previewDocImgWrapper');
+    var img = document.getElementById('previewDocImage');
+    var openBtn = document.getElementById('previewOpenTabBtn');
+    
+    function showModalWithData(dataUrl) {
+        openBtn.href = dataUrl;
+        if (isPdf) {
+            frame.src = dataUrl;
+            pdfContainer.style.display = 'block';
+            imgWrapper.style.display = 'none';
+            img.src = '';
+        } else {
+            img.src = dataUrl;
+            imgWrapper.style.display = 'block';
+            pdfContainer.style.display = 'none';
+            frame.src = '';
+        }
+        var modal = document.getElementById('uploadFilePreviewModal');
+        modal.style.display = 'flex';
+    }
+    
+    if (selectedUploadFileDataUrl) {
+        showModalWithData(selectedUploadFileDataUrl);
+    } else {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            selectedUploadFileDataUrl = e.target.result;
+            showModalWithData(selectedUploadFileDataUrl);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function closeUploadPreviewModal() {
+    var modal = document.getElementById('uploadFilePreviewModal');
+    if (modal) modal.style.display = 'none';
+    var frame = document.getElementById('previewDocFrame');
+    if (frame) frame.src = '';
+    var img = document.getElementById('previewDocImage');
+    if (img) img.src = '';
+}
+
+function handleAdminDisputeClick(btn) {
+    var d = btn.dataset;
+    showDisputeModal(d.billId, d.farmer, d.category, d.amount, d.reason, d.date);
+}
+
+function showDisputeModal(billId, farmerName, category, amount, reason, dateStr) {
+    document.getElementById('modalDisputeBillId').innerText = 'Bill #' + billId;
+    document.getElementById('modalDisputeDate').innerText = 'Disputed on ' + (dateStr || 'Recent');
+    document.getElementById('modalDisputeFarmer').innerText = 'Farmer: ' + farmerName;
+    document.getElementById('modalDisputeCategory').innerText = category + ' • ₹' + amount;
+    document.getElementById('modalDisputeReason').innerText = reason || 'No detailed reason provided.';
+    
+    var form = document.getElementById('modalResolveForm');
+    form.action = '/admin-panel/bills/' + billId + '/toggle/';
+    
+    document.getElementById('adminDisputeModal').style.display = 'flex';
+}
+
+function closeDisputeModal() {
+    document.getElementById('adminDisputeModal').style.display = 'none';
+}
+</script>
+
+<style>
+.filter-pill {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.825rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: var(--transition);
+    color: var(--color-text-muted);
+}
+.filter-active-all {
+    background: #ffffff;
+    color: var(--color-primary-dark);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.filter-active-pending {
+    background: #ffffff;
+    color: #b45309;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.filter-active-paid {
+    background: #ffffff;
+    color: var(--color-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.filter-active-disputed {
+    background: #ffffff;
+    color: #b91c1c;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.status-badge.status-disputed {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.btn-doc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    text-decoration: none;
+    transition: var(--transition);
+}
+.btn-doc-pill:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.btn-review-dispute {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    margin-right: 0.35rem;
+    transition: var(--transition);
+}
+.btn-review-dispute:hover {
+    background: #fee2e2;
+    border-color: #f87171;
+}
+
+.btn-side-view {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+    transition: var(--transition);
+}
+.btn-side-view:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+.btn-side-view.btn-view-ready {
+    background: #eaf5ee;
+    color: #1b4332;
+    border-color: #2d6a4f;
+    box-shadow: 0 1px 3px rgba(27, 67, 50, 0.15);
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+.modal-card {
+    background: #ffffff;
+    border-radius: var(--radius-md);
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    animation: modalSlide 0.2s ease-out;
+}
+@keyframes modalSlide {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+.modal-close:hover {
+    color: var(--color-text-main);
+}
+</style>
+{% endblock %}

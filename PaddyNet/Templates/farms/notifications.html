@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Community Notices & Announcements — PaddyNet Farmer Portal{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <span class="role-badge badge-farmer">Farmer Community Board</span>
+                <h1 class="dashboard-title">Official Notices & Announcements</h1>
+                <p class="dashboard-subtitle">Stay informed on monsoon alerts, dewatering cycles, fertilizer subsidies, and padasekharam advisories.</p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'farmer_dashboard' %}" class="btn-secondary">
+                    <span>&larr; Dashboard</span>
+                </a>
+                <a href="{% url 'farmer_bills' %}" class="btn-secondary">
+                    <span>💳 My Bills</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter / Counter Bar -->
+        <div class="stats-filter-bar">
+            <div style="font-weight: 700; color: var(--color-primary-dark); font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>📢</span>
+                <span>Total Broadcasts: <strong>{{ total_count }}</strong></span>
+            </div>
+            <div style="font-size: 0.875rem; color: var(--color-text-muted);">
+                Showing all notices in chronological order (newest first)
+            </div>
+        </div>
+
+        <!-- Notices Feed -->
+        {% if notifications %}
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                {% for notice in notifications %}
+                    <div class="dashboard-card" style="margin-bottom: 0; border-left: 5px solid var(--color-primary); transition: var(--transition);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                            <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--color-primary-dark); margin: 0; letter-spacing: -0.01em;">
+                                {{ notice.title }}
+                            </h2>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="meta-pill meta-pill-accent" style="font-size: 0.8rem;">
+                                    🕒 {{ notice.created_at|timesince }} ago
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style="font-size: 0.975rem; color: var(--color-text-main); line-height: 1.65; white-space: pre-line; margin-bottom: 1.25rem;">
+                            {{ notice.message }}
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.85rem; border-top: 1px solid var(--color-border); font-size: 0.85rem; color: var(--color-text-muted); flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                Posted by <strong>{{ notice.posted_by.get_full_name|default:notice.posted_by.username }}</strong> ({{ notice.posted_by.get_role_display }})
+                            </div>
+                            <div style="font-weight: 600;">
+                                📅 {{ notice.created_at|date:"F d, Y &bull; h:i A" }}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="dashboard-card" style="text-align: center; padding: 3rem 1.5rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📢</div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--color-primary-dark); margin-bottom: 0.5rem;">
+                    No Notices Posted Yet
+                </h3>
+                <p class="text-muted" style="max-width: 500px; margin: 0 auto 1.5rem auto;">
+                    There are currently no announcements published by the administration. Check back periodically for agricultural updates.
+                </p>
+                <a href="{% url 'farmer_dashboard' %}" class="btn-primary" style="display: inline-flex;">
+                    Return to Dashboard
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

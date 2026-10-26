@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}All Registered Farmers — Admin Control — PaddyNet{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div>
+                <span class="role-badge badge-admin">Farmer Directory</span>
+                <h1 class="dashboard-title">Registered Farmers Directory</h1>
+                <p class="dashboard-subtitle">Complete registry of all farmers, contact details, village clusters, and agricultural field portfolios.</p>
+            </div>
+            <div class="field-header-actions">
+                <a href="{% url 'admin_dashboard' %}" class="btn-secondary">
+                    <span>&larr; Admin Dashboard</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter / Search Bar -->
+        <div class="stats-filter-bar">
+            <div style="font-weight: 700; color: var(--color-primary-dark); font-size: 1.05rem;">
+                🌾 <span>Total Farmers: <strong>{{ total_count }}</strong></span>
+            </div>
+            <form method="get" action="{% url 'admin_farmer_list' %}" style="display: flex; gap: 0.5rem; flex: 1; max-width: 450px;">
+                <input 
+                    type="text" 
+                    name="q" 
+                    value="{{ search_query }}" 
+                    placeholder="Search by name, village, phone, or ID..." 
+                    class="form-input" 
+                    style="margin: 0; padding: 0.5rem 0.85rem;"
+                >
+                <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                    Search
+                </button>
+                {% if search_query %}
+                    <a href="{% url 'admin_farmer_list' %}" class="btn-secondary" style="padding: 0.5rem 0.85rem; font-size: 0.9rem;">
+                        Clear
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Farmer Records Table -->
+        <div class="dashboard-card">
+            {% if farmers %}
+                <div class="admin-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Farmer Name</th>
+                                <th>Farmer ID</th>
+                                <th>Village</th>
+                                <th>Phone Number</th>
+                                <th>Farming Group</th>
+                                <th>Acres Owned</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for farmer in farmers %}
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--color-primary-dark); font-size: 1rem;">
+                                            {{ farmer.full_name|default:farmer.user.username }}
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: var(--color-text-muted);">
+                                            @{{ farmer.user.username }} &bull; {{ farmer.user.email }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if farmer.farmer_id %}
+                                            <span style="font-family: monospace; font-size: 0.9rem; font-weight: 700; color: var(--color-primary-dark); background: var(--color-primary-soft); padding: 0.2rem 0.5rem; border-radius: var(--radius-sm);">
+                                                {{ farmer.farmer_id }}
+                                            </span>
+                                        {% else %}
+                                            <span style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic;">Not assigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>📍 {{ farmer.village }}</strong>
+                                    </td>
+                                    <td>
+                                        <span style="font-family: monospace; font-weight: 600;">📞 {{ farmer.phone_number }}</span>
+                                    </td>
+                                    <td>{{ farmer.farming_group }}</td>
+                                    <td><strong>{{ farmer.acres_owned }}</strong> Acres</td>
+                                    <td>
+                                        {% if farmer.is_verified %}
+                                            <span class="status-badge status-verified">Verified</span>
+                                        {% else %}
+                                            <span class="status-badge status-pending">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <a href="{% url 'admin_farmer_detail' farmer.id %}" class="btn-card-primary" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; text-decoration: none;">
+                                            <span>View Profile & Fields</span>
+                                            <span>&rarr;</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="padding: 2.5rem; text-align: center; background: #f8faf7; border-radius: var(--radius-sm);">
+                    <p style="color: var(--color-text-muted); font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem;">
+                        No farmer records match your criteria.
+                    </p>
+                    {% if search_query %}
+                        <a href="{% url 'admin_farmer_list' %}" class="btn-secondary" style="display: inline-block;">View All Farmers</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
